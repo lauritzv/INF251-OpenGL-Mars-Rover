@@ -266,7 +266,7 @@ void motion(int x, int y) {
 /// Initialize buffer objects
 bool initMesh() {
 	// Load the OBJ model
-	if (!Model.import("capsule\\capsule.obj")) {
+	if (!Model.import("models\\capsule\\capsule.obj")) {
 		cerr << "Error: cannot load model." << endl;
 		return false;
 	}
@@ -316,7 +316,7 @@ bool initShaders() {
 	}
 
 	// Read and set the source code for the vertex shader
-	string text = readTextFile("shader.ass2.v.glsl");
+	string text = readTextFile("shaders\\shader.ass2.v.glsl");
 	const char* code = text.c_str();
 	int length = static_cast<int>(text.length());
 	if (length == 0)
@@ -324,7 +324,7 @@ bool initShaders() {
 	glShaderSource(vertShader, 1, &code, &length);
 
 	// Read and set the source code for the fragment shader
-	string text2 = readTextFile("shader.ass2.f.glsl");
+	string text2 = readTextFile("shaders\\shader.ass2.f.glsl");
 	const char *code2 = text2.c_str();
 	length = static_cast<int>(text2.length());
 	if (length == 0)

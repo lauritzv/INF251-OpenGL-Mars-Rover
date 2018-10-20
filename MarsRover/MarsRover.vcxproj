@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{85E72E81-BAFB-4FA5-B4A8-31A50D9FB036}</ProjectGuid>
+    <ProjectGuid>{09E3761C-C22A-413A-9C50-3AE604C4AFEF}</ProjectGuid>
     <RootNamespace>ogldev_tutorials</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
-    <ProjectName>Ass2_Rover</ProjectName>
+    <ProjectName>MarsRover</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,10 +140,10 @@
     <ClCompile Include="model_obj.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader.ass2.f.glsl" />
-    <None Include="shader.f.glsl" />
-    <None Include="shader.ass2.v.glsl" />
-    <None Include="shader.v.glsl" />
+    <None Include="shaders\shader.ass2.f.glsl" />
+    <None Include="shaders\shader.ass2.v.glsl" />
+    <None Include="shaders\shader.f.glsl" />
+    <None Include="shaders\shader.v.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
