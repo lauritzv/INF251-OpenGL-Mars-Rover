@@ -1,6 +1,12 @@
 # Prerequisites
 *.d
 
+# Folders
+x64/
+inf251_tutorial/x64/
+debug/
+.vs/
+
 # Compiled Object files
 *.slo
 *.lo
@@ -15,10 +21,6 @@
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai
