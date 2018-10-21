@@ -7,7 +7,7 @@
 /// A vector with 3 components of type T
 template <class T>
 class Vector3 {
-    
+
 	typedef T data_t;
 
 	// ********************************************************************************************************
@@ -37,7 +37,7 @@ public:
     }
 
     /// Copy constructor
-	template <class U> 
+	template <class U>
     Vector3(const Vector3<U>& other) {
         mElements[0] = static_cast<data_t>(other.get()[0]);
         mElements[1] = static_cast<data_t>(other.get()[1]);
@@ -132,7 +132,7 @@ public:
 	template <class U>
     data_t dot(const Vector3<U>& other) const {
         return (x() * static_cast<data_t>(other.x()) +
-			y() * static_cast<data_t>(other.y()) + 
+			y() * static_cast<data_t>(other.y()) +
 			z() * static_cast<data_t>(other.z()));
     }
 
@@ -140,7 +140,7 @@ public:
 	template <class U>
     Vector3 cross(const Vector3<U> &other) const {
         return Vector3(
-			y() * static_cast<data_t>(other.z()) - z() * static_cast<data_t>(other.y()), 
+			y() * static_cast<data_t>(other.z()) - z() * static_cast<data_t>(other.y()),
 			z() * static_cast<data_t>(other.x()) - x() * static_cast<data_t>(other.z()),
 			x() * static_cast<data_t>(other.y()) - y() * static_cast<data_t>(other.x()));
     }
@@ -183,8 +183,8 @@ public:
     /// Return true if this vector is equal to the specified one
 	template <class U>
     bool operator==(const Vector3<U>& other) const {
-        return (x() == static_cast<data_t>(other.x())) && 
-			(y() == static_cast<data_t>(other.y())) && 
+        return (x() == static_cast<data_t>(other.x())) &&
+			(y() == static_cast<data_t>(other.y())) &&
 			(z() == static_cast<data_t>(other.z()));
     }
 
@@ -231,7 +231,7 @@ public:
 		z() = z() * static_cast<data_t>(other.z());
 		return *this;
 	}
-	
+
 	/// In-place scalar multiplication
 	template <class U>
 	const Vector3<data_t>& operator*=(const U& f) {

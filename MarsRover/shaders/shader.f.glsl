@@ -10,6 +10,8 @@ in vec3 lightPos;
 //The sampler2D uniforms represent the 2 textures we are going to use.
 uniform sampler2D uSampler;
 uniform sampler2D uNormalSampler;
+//uniform sampler2D uSpecSampler;
+
 out vec4 fColor;
 
 
@@ -20,7 +22,7 @@ void main() {
     vec4 textureColor = texture(uSampler, vTextureCoord);
     vec4 ambient = vec4(0.1, 0.1, 0.1, 1.0) * textureColor;
     vec4 diffuse = vec4(0.5, 0.5, 0.5, 1.0) * textureColor;
-    vec4 specularcolor = vec4(0.8, 0.8, 0.8, 1.0) * textureColor; 
+    vec4 specularcolor = vec4(0.8, 0.8, 0.8, 1.0) * textureColor;
     
     //Calculate the normal and apply the tangent space matrix
     vec3 normal = texture(uNormalSampler, vTextureCoord).xyz;

@@ -5,12 +5,15 @@
 
 #include <fstream>
 #include <iostream>
+#include <stdio.h>
 #include <string>
 
 #include "model_obj.h"
 #include "Vector3.h"
 #include "Matrix4.h"
+#include "lodepng.h"
 #include "create_matrix.h"
+
 using namespace std;
 
 /*
@@ -36,7 +39,9 @@ float clamp(float, float, float);
 
 // --- Other methods ------------------------------------------------------------------------------
 bool initMesh();
+bool initBuffers();
 bool initShaders();
+bool initTextures();
 string readTextFile(const string&);
 
 
@@ -49,6 +54,12 @@ GLuint IBO = 0;		///< An index buffer object
 
 // Shaders
 GLuint ShaderProgram = 0;	///< A shader program
+
+// Textures
+GLuint TObject = 0;
+unsigned int TWidth = 0, THeight = 0;
+unsigned char *TextureData = nullptr;
+
 
 // Vertex transformations
 Vector3f Translation;	///< Translation
@@ -115,8 +126,8 @@ int main(int argc, char **argv) {
 	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 	projection = cm.create_projection(orthographic, aspect_ratio);
 
-	// Shaders & mesh
-	if (!initShaders() || !initMesh())
+	// Shaders, Textures & buffers
+	if (!initShaders() || !initTextures() || !initBuffers())
 		return -1;
 
 	// Start the main event loop
@@ -148,6 +159,10 @@ void display() {
 	assert(prULocation != -1);
 	glUniformMatrix4fv(prULocation, 1, false, projection.get());
 
+	// tell the shader which T.U. to use
+	GLint samplerULocation = glGetUniformLocation(ShaderProgram, "sampler");
+	glUniform1i(samplerULocation, 0);
+
 	// ********************************************************************************************
 
 
@@ -165,6 +180,14 @@ void display() {
 	// Bind the buffers
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
+	// set the active texture unit
+	glActiveTexture(GL_TEXTURE0);
+	// bind the T.O. to the active T.U.
+	glBindTexture(GL_TEXTURE_2D, TObject);
+
+
+	// ...
 
 	// Draw the elements on the GPU
 	glDrawElements(
@@ -264,7 +287,7 @@ void motion(int x, int y) {
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 /// Initialize buffer objects
-bool initMesh() {
+bool initBuffers() {
 	// Load the OBJ model
 	if (!Model.import("models\\capsule\\capsule.obj")) {
 		cerr << "Error: cannot load model." << endl;
@@ -295,7 +318,6 @@ bool initMesh() {
 	return true;
 } /* initBuffers() */
 
-
 /// Initialize shaders. Return false if initialization fail
 bool initShaders() {
 	// Create the shader program and check for errors
@@ -316,7 +338,7 @@ bool initShaders() {
 	}
 
 	// Read and set the source code for the vertex shader
-	string text = readTextFile("shaders\\shader.ass2.v.glsl");
+	string text = readTextFile("shaders\\shader.ass3.v.glsl");
 	const char* code = text.c_str();
 	int length = static_cast<int>(text.length());
 	if (length == 0)
@@ -324,7 +346,7 @@ bool initShaders() {
 	glShaderSource(vertShader, 1, &code, &length);
 
 	// Read and set the source code for the fragment shader
-	string text2 = readTextFile("shaders\\shader.ass2.f.glsl");
+	string text2 = readTextFile("shaders\\shader.ass3.f.glsl");
 	const char *code2 = text2.c_str();
 	length = static_cast<int>(text2.length());
 	if (length == 0)
@@ -342,12 +364,14 @@ bool initShaders() {
 	if (!success) {
 		glGetShaderInfoLog(vertShader, 1024, nullptr, errorLog);
 		cerr << "Error: cannot compile vertex shader.\nError log:\n" << errorLog << endl;
+		getchar();
 		return false;
 	}
 	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		glGetShaderInfoLog(fragShader, 1024, nullptr, errorLog);
 		cerr << "Error: cannot compile fragment shader.\nError log:\n" << errorLog << endl;
+		getchar();
 		return false;
 	}
 
@@ -361,6 +385,7 @@ bool initShaders() {
 	if (!success) {
 		glGetProgramInfoLog(ShaderProgram, 1024, nullptr, errorLog);
 		cerr << "Error: cannot link shader program.\nError log:\n" << errorLog << endl;
+		getchar();
 		return false;
 	}
 
@@ -372,6 +397,7 @@ bool initShaders() {
 	if (!success) {
 		glGetProgramInfoLog(ShaderProgram, 1024, nullptr, errorLog);
 		cerr << "Error: cannot validate shader program.\nError log:\n" << errorLog << endl;
+		getchar();
 		return false;
 	}
 
@@ -382,6 +408,36 @@ bool initShaders() {
 	return true;
 } /* initShaders() */
 
+bool initTextures()
+{
+	unsigned int fail = lodepng_decode_file(
+		&TextureData, // the texture will be stored here
+		&TWidth, &THeight, // width and height of the texture will be stored here
+		"models\\capsule\\capsule.png", // path and file name
+		LCT_RGBA, // format of the image
+		8); // bits for each color channel (bit depth / num. of channels)
+	if (fail != 0)
+		return false;
+
+	glGenTextures(1, &TObject); // Create the texture object
+	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
+
+	// Set the texture data
+	glTexImage2D(GL_TEXTURE_2D, // type of texture
+		0,						// level of detail (used for mip-mapping only)
+		GL_RGBA,				// color components (how the data should be interpreted)
+		TWidth, THeight,		// texture width (must be a power of 2 on some systems)
+		0,						// border thickness (just set this to 0)
+		GL_RGBA,				// data format (how the data is supplied)
+		GL_UNSIGNED_BYTE,		// the basic type of the data array
+		TextureData);			// pointer to the data
+
+	// Set texture parameters for minification and magnification
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	return true;
+}
 
 /// Read the specified file and return its content
 string readTextFile(const string& pathAndFileName) {

@@ -130,18 +130,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="create_matrix.h" />
+    <ClInclude Include="lodepng.h" />
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="model_obj.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="create_matrix.cpp" />
+    <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model_obj.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader.ass2.f.glsl" />
     <None Include="shaders\shader.ass2.v.glsl" />
+    <None Include="shaders\shader.ass3.f.glsl" />
+    <None Include="shaders\shader.ass3.v.glsl" />
     <None Include="shaders\shader.f.glsl" />
     <None Include="shaders\shader.v.glsl" />
   </ItemGroup>

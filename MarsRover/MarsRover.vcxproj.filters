@@ -2,35 +2,44 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="create_matrix.cpp">
-      <Filter>src</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
-      <Filter>src</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="model_obj.cpp">
-      <Filter>src</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lodepng.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="create_matrix.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="Matrix4.h">
-      <Filter>src</Filter>
+    <ClInclude Include="Vector3.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="model_obj.h">
-      <Filter>src</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector3.h">
-      <Filter>src</Filter>
+    <ClInclude Include="Matrix4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="create_matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lodepng.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
       <UniqueIdentifier>{7893976b-5646-46fd-a6e9-6967702a0902}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
+    <Filter Include="Source Files">
       <UniqueIdentifier>{2b3a745f-5393-449f-ab54-8ca046990882}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{cee892d5-353e-412a-96fb-0b973deb8b96}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -44,6 +53,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\shader.v.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.ass3.f.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.ass3.v.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
