@@ -129,6 +129,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="create_matrix.h" />
     <ClInclude Include="lodepng.h" />
     <ClInclude Include="Matrix4.h" />
@@ -136,6 +137,7 @@
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="create_matrix.cpp" />
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
@@ -147,6 +149,8 @@
     <None Include="shaders\shader.ass3.f.glsl" />
     <None Include="shaders\shader.ass3.v.glsl" />
     <None Include="shaders\shader.f.glsl" />
+    <None Include="shaders\shader.tutor6.f.glsl" />
+    <None Include="shaders\shader.tutor6.v.glsl" />
     <None Include="shaders\shader.v.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

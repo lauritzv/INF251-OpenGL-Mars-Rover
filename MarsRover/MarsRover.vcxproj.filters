@@ -13,6 +13,9 @@
     <ClCompile Include="lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -28,6 +31,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lodepng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,6 +65,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\shader.ass3.v.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.tutor6.f.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.tutor6.v.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
