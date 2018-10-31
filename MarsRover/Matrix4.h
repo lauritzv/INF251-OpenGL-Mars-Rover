@@ -154,8 +154,8 @@ public:
 
     /// Create a matrix using the specified vectors. Each vector represent a column
 	template <class U>
-    Matrix4(const Vector3<U>& col0, const Vector3<U>& col1, const Vector3<U>& col3,
-		const Vector3<U>& col4 = Vector3<U>(0.,0.,0.))
+    Matrix4(const Vector3<U>& col0, const Vector3<U>& col1, const Vector3<U>& col2,
+		const Vector3<U>& col3 = Vector3<U>(0.,0.,0.))
 	{
 		mElements[0] = static_cast<data_t>(col0.x());
 		mElements[1] = static_cast<data_t>(col0.y());

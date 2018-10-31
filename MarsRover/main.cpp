@@ -5,7 +5,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 
 #include "model_obj.h"
@@ -13,6 +13,8 @@
 #include "Matrix4.h"
 #include "lodepng.h"
 #include "create_matrix.h"
+#include "Camera.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -38,12 +40,11 @@ float clamp(float, float, float);
 
 
 // --- Other methods ------------------------------------------------------------------------------
-bool initMesh();
 bool initBuffers();
 bool initShaders();
 bool initTextures();
 string readTextFile(const string&);
-
+bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData);
 
 // --- Global variables ---------------------------------------------------------------------------
 
@@ -56,9 +57,9 @@ GLuint IBO = 0;		///< An index buffer object
 GLuint ShaderProgram = 0;	///< A shader program
 
 // Textures
-GLuint TObject = 0;
+GLuint TObjectDiffuse0 = 0, TObjectNormal0 = 0, TObjectSpecular0 = 0;
 unsigned int TWidth = 0, THeight = 0;
-unsigned char *TextureData = nullptr;
+unsigned char *TextureDataDiffuse = nullptr, *TextureDataNorm = nullptr, *TextureDataSpec = nullptr;
 
 
 // Vertex transformations
@@ -78,6 +79,7 @@ int MouseButton;		///< The last mouse button pressed or released
 bool wireframe = false;
 bool orthographic = false;
 
+Camera Cam;
 create_matrix cm;
 
 // --- main() -------------------------------------------------------------------------------------
@@ -124,11 +126,21 @@ int main(int argc, char **argv) {
 	RotationY = 0.0;
 	Scaling = 1.0f;
 	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-	projection = cm.create_projection(orthographic, aspect_ratio);
+	//projection = cm.create_projection(orthographic, aspect_ratio);
+
+	// Camera init
+	Cam.init();
+	Cam.ar = aspect_ratio;
 
 	// Shaders, Textures & buffers
 	if (!initShaders() || !initTextures() || !initBuffers())
+	{
+		cout << "Press Enter to exit..." << endl;
+		getchar();
 		return -1;
+	}
+
+	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
 
 	// Start the main event loop
 	glutMainLoop();
@@ -157,35 +169,61 @@ void display() {
 	// Set projection
 	GLint prULocation = glGetUniformLocation(ShaderProgram, "projection");
 	assert(prULocation != -1);
-	glUniformMatrix4fv(prULocation, 1, false, projection.get());
+	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
+	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
 
 	// tell the shader which T.U. to use
-	GLint samplerULocation = glGetUniformLocation(ShaderProgram, "sampler");
-	glUniform1i(samplerULocation, 0);
+	GLint diffSamplerULocation = glGetUniformLocation(ShaderProgram, "diffSampler");
+	glUniform1i(diffSamplerULocation, 0);
+	GLint normSamplerULocation = glGetUniformLocation(ShaderProgram, "normSampler");
+	glUniform1i(normSamplerULocation, 1);
+	GLint specSamplerULocation = glGetUniformLocation(ShaderProgram, "specSampler");
+	glUniform1i(specSamplerULocation, 2);
 
 	// ********************************************************************************************
 
 
 	// Enable the vertex attributes and set their format
+	//positions
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(0));
+	glVertexAttribPointer(
+		0,											//location
+		3,											//datacount per
+		GL_FLOAT,									//datatype
+		GL_FALSE,									//normalize?
+		sizeof(ModelOBJ::Vertex),					//stride
+		reinterpret_cast<const GLvoid*>(0));		//
 
+	//texcoords
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
 		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(sizeof(Vector3f)));
+		reinterpret_cast<const GLvoid*>(3* sizeof(float)));
+
+	//normals
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+		sizeof(ModelOBJ::Vertex),
+		reinterpret_cast<const GLvoid*>(sizeof(Vector3f) + sizeof(GL_V2F))
+	);
 
 	// Bind the buffers
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-	// set the active texture unit
-	glActiveTexture(GL_TEXTURE0);
-	// bind the T.O. to the active T.U.
-	glBindTexture(GL_TEXTURE_2D, TObject);
+	// set the active texture units
 
+	// Bind our diffuse texture in Texture Unit 0
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TObjectDiffuse0);
+
+	// Bind our normal texture in Texture Unit 1
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, TObjectNormal0);
+
+	// Bind our specular texture in Texture Unit 2
+	//glActiveTexture(GL_TEXTURE2);
+	//glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
 
 	// ...
 
@@ -211,6 +249,131 @@ void display() {
 void idle() {
 }
 
+void keyboard(unsigned char key, int x, int y) {
+	Vector3f right;
+
+	switch (tolower(key)) {
+		// --- camera movements ---
+	case 'w':
+		Cam.position += Cam.target * 0.1f;
+		break;
+	case 'a':
+		right = Cam.target.cross(Cam.up);
+		Cam.position -= right * 0.1f;
+		break;
+	case 's':
+		Cam.position -= Cam.target * 0.1f;
+		break;
+	case 'd':
+		right = Cam.target.cross(Cam.up);
+		Cam.position += right * 0.1f;
+		break;
+	case 'c':
+		Cam.position -= Cam.up * 0.1f;
+		break;
+	case ' ':
+		Cam.position += Cam.up * 0.1f;
+		break;
+	case 'r': // Reset camera status
+		Cam.init();
+		Cam.ar = aspect_ratio;
+		break;
+
+		// --- utilities ---
+	case 'p': // toggle wireframe mode
+		wireframe = !wireframe;
+		if (wireframe)
+			glPolygonMode(GL_FRONT, GL_LINE);   // draw polygons as wireframe
+		else
+			glPolygonMode(GL_FRONT, GL_FILL); // draw polygon surfaces
+		glutPostRedisplay();
+		break;
+	case 'g': // show the current OpenGL version
+		cout << "OpenGL version " << glGetString(GL_VERSION) << endl;
+		break;
+	case 'l': // reload shaders
+		cout << "Re-loading shaders..." << endl;
+		if (initShaders()) {
+			cout << "> done." << endl;
+			glutPostRedisplay();
+		}
+		break;
+	case 'q':  // terminate the application
+		exit(0);
+		break;
+	}
+	// redraw
+	glutPostRedisplay();
+}
+
+// Called whenever a special keyboard button is pressed
+void special(int key, int x, int y) {
+	Vector3f right;
+
+	switch (key) {
+		// --- camera movements ---
+	case GLUT_KEY_PAGE_UP:	// Increase field of view
+		Cam.fov = min(Cam.fov + 1.f, 179.f);
+		break;
+	case GLUT_KEY_PAGE_DOWN:	// Decrease field of view
+		Cam.fov = max(Cam.fov - 1.f, 1.f);
+		break;
+
+		// --- utilities ---
+	case GLUT_KEY_F5:	// Reload shaders
+		cout << "Re-loading shaders..." << endl;
+		if (initShaders()) {
+			cout << "> done." << endl;
+		}
+		break;
+	}
+	// redraw
+	glutPostRedisplay();
+}
+
+/// Called whenever a mouse event occur (press or release)
+void mouse(int button, int state, int x, int y) {
+	// Store the current mouse status
+	MouseButton = button;
+
+	// Instead of updating the mouse position, lock it at the center of the screen
+	MouseX = glutGet(GLUT_WINDOW_WIDTH) / 2;
+	MouseY = glutGet(GLUT_WINDOW_HEIGHT) / 2;
+	//glutWarpPointer(MouseX, MouseY);
+}
+
+/// Called whenever the mouse is moving while a button is pressed
+void motion(int x, int y) {
+
+	if (MouseButton == GLUT_RIGHT_BUTTON) {
+		Cam.position += Cam.target * 0.003f * (MouseY - y);
+		Cam.position += Cam.target.cross(Cam.up) * 0.003f * (x - MouseX);
+	}
+	if (MouseButton == GLUT_MIDDLE_BUTTON) {
+		Cam.zoom = max(0.001f, Cam.zoom + 0.003f * (y - MouseY));
+	}
+	if (MouseButton == GLUT_LEFT_BUTTON) {
+		Matrix4f ry, rr;
+
+		// "horizontal" rotation
+		ry.rotate(0.1f * (MouseX - x), Vector3f(0, 1, 0));
+		Cam.target = ry * Cam.target;
+		Cam.up = ry * Cam.up;
+
+		// "vertical" rotation
+		rr.rotate(0.1f * (MouseY - y), Cam.target.cross(Cam.up));
+		Cam.up = rr * Cam.up;
+		Cam.target = rr * Cam.target;
+	}
+
+	// Lock the mouse at the center of the screen
+	glutWarpPointer(MouseX, MouseY);
+
+	// Redraw the scene
+	glutPostRedisplay();
+}
+
+/*
 /// Called whenever a keyboard button is pressed (only ASCII characters)
 void keyboard(const unsigned char key, int x, int y) {
 	switch (tolower(key)) {
@@ -283,13 +446,18 @@ void motion(int x, int y) {
 
 	glutPostRedisplay(); // Specify that the scene needs to be updated
 }
+*/
 
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 /// Initialize buffer objects
 bool initBuffers() {
 	// Load the OBJ model
-	if (!Model.import("models\\capsule\\capsule.obj")) {
+	if (!Model.import(
+		//"models\\capsule\\capsule.obj"
+		//"models\\crystalpot\\crystalpot.obj"
+		"models\\rover\\rover.obj"
+		)) {
 		cerr << "Error: cannot load model." << endl;
 		return false;
 	}
@@ -410,10 +578,54 @@ bool initShaders() {
 
 bool initTextures()
 {
+	//unsigned int fail = lodepng_decode_file(
+	//	&TextureDataDiffuse, // the texture will be stored here
+	//	&TWidth, &THeight, // width and height of the texture will be stored here
+	//	"models\\crystalpot\\crystalshell_diff.png", // path and file name
+	//	LCT_RGBA, // format of the image
+	//	8); // bits for each color channel (bit depth / num. of channels)
+	//if (fail != 0)
+	//	return false;
+
+	//glGenTextures(1, &TObjectDiffuse0); // Create the texture object
+	//glBindTexture(GL_TEXTURE_2D, TObjectDiffuse0); // Bind it as a 2D texture
+
+	//// Set the texture data
+	//glTexImage2D(GL_TEXTURE_2D, // type of texture
+	//	0,						// level of detail (used for mip-mapping only)
+	//	GL_RGBA,				// color components (how the data should be interpreted)
+	//	TWidth, THeight,		// texture width (must be a power of 2 on some systems)
+	//	0,						// border thickness (just set this to 0)
+	//	GL_RGBA,				// data format (how the data is supplied)
+	//	GL_UNSIGNED_BYTE,		// the basic type of the data array
+	//	TextureDataDiffuse);			// pointer to the data
+
+	//// Set texture parameters for minification and magnification
+	////glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	////glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//	// ... nice trilinear filtering ...
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//// ... which requires mipmaps. Generate them automatically.
+	//glGenerateMipmap(GL_TEXTURE_2D);
+	if(
+	initTexture("models\\crystalpot\\crystalshell_diff.png", TObjectDiffuse0, TextureDataDiffuse)
+	&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
+	&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec))
+	{
+		return true;
+	}
+	else return false;
+}
+
+bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
+{
 	unsigned int fail = lodepng_decode_file(
 		&TextureData, // the texture will be stored here
 		&TWidth, &THeight, // width and height of the texture will be stored here
-		"models\\capsule\\capsule.png", // path and file name
+		pathfilename, // path and file name
 		LCT_RGBA, // format of the image
 		8); // bits for each color channel (bit depth / num. of channels)
 	if (fail != 0)
@@ -433,8 +645,15 @@ bool initTextures()
 		TextureData);			// pointer to the data
 
 	// Set texture parameters for minification and magnification
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	return true;
 }

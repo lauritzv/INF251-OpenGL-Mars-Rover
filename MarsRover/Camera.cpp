@@ -6,10 +6,12 @@ Matrix4f Camera::computeCameraTransform() const
 	Vector3f t = target.getNormalized();
 	Vector3f u = up.getNormalized();
 	Vector3f r = t.cross(u);
-	const Matrix4f camR(r.x(), r.y(), r.z(), 0.f,
+	const Matrix4f camR(
+		r.x(), r.y(), r.z(), 0.f,
 		u.x(), u.y(), u.z(), 0.f,
 		-t.x(), -t.y(), -t.z(), 0.f,
-		0.f, 0.f, 0.f, 1.f);
+		0.f, 0.f, 0.f, 1.f
+	);
 
 	// camera translation
 	Matrix4f camT = Matrix4f::createTranslation(-position);
@@ -32,8 +34,9 @@ void Camera::init()
 {
 	position.set(0.f, 0.f, 0.f);
 	target.set(0.f, 0.f, -1.f);
+	//target.set(0.0f, 0.0f, -10.0f);
 	up.set(0.f, 1.f, 0.f);
-	fov = 30.f;
+	fov = 50.f;
 	ar = 1.f; // will be correctly initialized in the "display()" method
 	zNear = 0.1f;
 	zFar = 100.f;
