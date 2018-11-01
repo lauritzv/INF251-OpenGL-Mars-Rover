@@ -181,7 +181,7 @@ void display() {
 	assert(prULocation != -1);
 	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
-
+	
 	// Set Eye position
 	GLint eyeULocation = glGetUniformLocation(ShaderProgram, "camera_position");
 	assert(eyeULocation != -1);
@@ -195,12 +195,11 @@ void display() {
 	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram, "specSampler");
 	glUniform1i(specSamplerULocation, 2);
 
-	//// Set normalMatrix
-	//Matrix4f modelView; // = ????
-	//Matrix4f normalMatrix = modelView.getInverse().getTransposed();
-	//GLint nmULocation = glGetUniformLocation(ShaderProgram, "normalMatrix");
-	//assert(nmULocation != -1);
-	//glUniformMatrix4fv(nmULocation, 1, true, normalMatrix.get());
+	// Set normalMatrix
+	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
+	GLint nmULocation = glGetUniformLocation(ShaderProgram, "normal_matrix");
+	assert(nmULocation != -1);
+	glUniformMatrix4fv(nmULocation, 1, true, normalMatrix.get());
 
 	// ********************************************************************************************
 
@@ -243,9 +242,9 @@ void display() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, TObjectNormal0);
 
-	// Bind our specular texture in Texture Unit 2
-	//glActiveTexture(GL_TEXTURE2);
-	//glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
+	 //Bind our specular texture in Texture Unit 2
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
 
 	// ...
 
@@ -488,7 +487,7 @@ bool initBuffers() {
 	// Load the OBJ model
 	if (!Model.import(
 		//"models\\capsule\\capsule.obj"
-		"models\\crystalpot\\crystalpot.obj"
+		"models\\rover\\rover.obj"
 		//"models\\rover\\rover.obj"
 		)) {
 		cerr << "Error: cannot load model." << endl;

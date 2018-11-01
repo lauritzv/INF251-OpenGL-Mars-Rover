@@ -6,7 +6,7 @@
 //*****
 
 // Per-fragment color coming from the vertex shader
-in vec4 vColor;
+//in vec4 vColor;
 in vec3 normal;
 in vec3 FragPos;
 in vec2 fTexCoords;
@@ -15,8 +15,8 @@ in vec3 d_light_direction;
 
 // Uniforms
 uniform vec3 d_light_a_color = vec3(1.,1.,1.); //white
-uniform float d_light_a_intensity = 0.2;
-uniform float d_light_d_intensity = 2.0;
+uniform float d_light_a_intensity = 0.1;
+uniform float d_light_d_intensity = 1.0;
 //uniform vec3 lightPos = vec3(0.,5.,-25.);
 uniform vec3 camera_position;
 uniform float d_light_s_intensity = 1.;
@@ -34,16 +34,20 @@ uniform float material_shininess = 56.;
 
 // Per-frgament output color
 out vec4 FragColor;
-
+//vec3 computeDirectionalLight()
+//{
+//
+//}
 void main() { 
 
 	vec3 position = FragPos;
 
 	//TextureColors
-	vec3 material_d_color, material_a_color = texture2D(diffSampler, fTexCoords).rgb;
+	vec3 material_d_color = texture2D(diffSampler, fTexCoords).rgb;
+	vec3 material_a_color = material_d_color;
 	vec3 normTexColor = texture2D(normSampler, fTexCoords).rgb;
 	vec3 material_s_color = texture2D(specSampler, fTexCoords).rgb;
-////	vec3 material_s_color = vec3(1.,1.,1.);
+//	vec3 material_s_color = vec3(1.,1.,1.);
 //
 //	//Normals and light direction
 //	vec3 norm = normalize(normal * 2.0 - 1.0);
@@ -67,24 +71,29 @@ void main() {
 	// --- directional light ----
 	// compute the required values and vectors
 	// notice that input variables cannot be modified, so copy them first
-	vec3 normal_nn = normalize(normal);	
+//	vec3 normal_nn = normalize(normal);
+	vec3 normal_nn = normalize((normTexColor) * normal);
 	vec3 d_light_dir_nn = normalize(d_light_direction);
 	vec3 view_dir_nn = normalize(camera_position - position);
 	//d_light_dir_nn = view_dir_nn;
 	
-	float dot_d_light_normal = dot(-d_light_dir_nn, normal);   // notice the minus!
-	vec3 d_reflected_dir_nn = d_light_dir_nn + 2. * dot_d_light_normal * normal;
+	float dot_d_light_normal = dot(-d_light_dir_nn, normal_nn);   // notice the minus!
+	vec3 d_reflected_dir_nn = d_light_dir_nn + 2. * dot_d_light_normal * normal_nn;
 	// should be already normalized, but we "need" to correct numerical errors
-	d_reflected_dir_nn = normalize(d_reflected_dir_nn); 
+	d_reflected_dir_nn = normalize(d_reflected_dir_nn);
 	
 	// compute the color contribution	
 	vec3 color;
 	vec3 amb_color = clamp(
 			material_a_color * d_light_a_color * d_light_a_intensity,
 			0.0, 1.0);
-	vec3 diff_color = clamp(
+//	vec3 amb_color = vec3(0.,0.,0.);
+	vec3 diff_color = 
+	clamp(
 			material_d_color * dot_d_light_normal * d_light_d_intensity,
+//			vec3(1.,1.,1.) * dot_d_light_normal * vec3(1.,1.,1.);
 			0.0, 1.0);
+//	vec3 spec_color = vec3(0.,0.,0.);
 	vec3 spec_color = clamp(
 			material_s_color *  
 			pow(dot(d_reflected_dir_nn, view_dir_nn), material_shininess),
@@ -112,6 +121,7 @@ void main() {
 		
 	// pass the reuslt to the fragment shader
 	FragColor = vec4(color, 1.0);
+//	FragColor = vec4(normal_nn,1.);
 
 
 //	//Ambient
@@ -135,4 +145,7 @@ void main() {
 ////	vec3 result = (ambient + diffuse + specular) * vec3(vColor.x, vColor.y, vColor.z);
 //	vec3 result = (ambient + diffuse + specular) * diffTexColor;
 //    FragColor = vec4(result,1.);
+
+
+//bump: ws_pos += bmp * normal
 }
