@@ -15,20 +15,9 @@
 #include "create_matrix.h"
 #include "Camera.h"
 #include <algorithm>
+#include <ctime>
 
 using namespace std;
-
-/*
- * CONTROLS:
- *
- * Left mouse rotates
- * Middle mouse translates
- * Right mouse scales
- *
- * w: toggle wireframe-mode
- * p: toggle between perspective and orthogonal
- *
- */
 
 // --- OpenGL callbacks ---------------------------------------------------------------------------
 void display();
@@ -36,15 +25,14 @@ void idle();
 void keyboard(unsigned char, int, int);
 void mouse(int, int, int, int);
 void motion(int, int);
-float clamp(float, float, float);
-
 
 // --- Other methods ------------------------------------------------------------------------------
 bool initBuffers();
 bool initShaders();
 bool initTextures();
-string readTextFile(const string&);
 bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData);
+string readTextFile(const string&);
+float clamp(float, float, float);
 
 // --- Global variables ---------------------------------------------------------------------------
 
@@ -57,10 +45,9 @@ GLuint IBO = 0;		///< An index buffer object
 GLuint ShaderProgram = 0;	///< A shader program
 
 // Textures
-GLuint TObjectDiffuse0 = 0, TObjectNormal0 = 0, TObjectSpecular0 = 0;
+GLuint TObjectDiffuse0 = -1, TObjectNormal0 = -1, TObjectSpecular0 = -1;
 unsigned int TWidth = 0, THeight = 0;
 unsigned char *TextureDataDiffuse = nullptr, *TextureDataNorm = nullptr, *TextureDataSpec = nullptr;
-
 
 // Vertex transformations
 Vector3f Translation;	///< Translation
@@ -78,6 +65,10 @@ int MouseButton;		///< The last mouse button pressed or released
 // Toggled Mode
 bool wireframe = false;
 bool orthographic = false;
+clock_t Timer;
+bool animateScene = true;
+
+int viewMode = 0;
 
 Camera Cam;
 create_matrix cm;
@@ -85,6 +76,22 @@ create_matrix cm;
 // --- main() -------------------------------------------------------------------------------------
 /// The entry point of the application
 int main(int argc, char **argv) {
+
+	cout <<
+'\n' << "CONTROLS:"<<
+'\n' <<
+'\n' << "Left mouse rotates"<<
+'\n' << "Middle mouse changes fov"<<
+'\n' << "Right mouse moves camera"<<
+'\n' << "wasd, space and c: first-person movement"<<
+'\n' <<
+'\n' << "r: resets camera"<<
+'\n' << "p: toggle wireframe-mode"<<
+'\n' << "t: toggle model rotation"<<
+'\n' << "v: cycle between different fragment output modes"<<
+'\n' << "l: reload shaders"<<
+'\n' << "q: quit program" << endl;
+
 
 	// Initialize glut and create a simple window
 	glutInit(&argc, argv);
@@ -94,6 +101,11 @@ int main(int argc, char **argv) {
 	glutCreateWindow("OpenGL Tutorial");
 
 	aspect_ratio = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
+
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+	//glMatrixMode(GL_MODELVIEW);
+	//glLoadIdentity();
 
 	// Initialize OpenGL callbacks
 	glutDisplayFunc(display);
@@ -118,15 +130,12 @@ int main(int argc, char **argv) {
 	glFrontFace(GL_CCW);		        // vertex order for the front face
 	glCullFace(GL_BACK);		        // back-faces should be removed
 
-	//glPolygonMode(GL_FRONT, GL_LINE);   // draw polygons as wireframe
-
 	// Transformation
 	Translation.set(0.0f, -2.0f, -10.0f);
 	RotationX = 0.0;
 	RotationY = 0.0;
 	Scaling = 1.0f;
 	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-	//projection = cm.create_projection(orthographic, aspect_ratio);
 
 	// Camera init
 	Cam.init();
@@ -141,6 +150,9 @@ int main(int argc, char **argv) {
 	}
 
 	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
+
+	//Start timer
+	Timer = clock();
 
 	// Start the main event loop
 	glutMainLoop();
@@ -172,16 +184,39 @@ void display() {
 	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
 
+	// Set lightPositionMatrix
+	GLint lpULocation = glGetUniformLocation(ShaderProgram, "lightPositionMat");
+	//assert(lpULocation != -1);
+	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
+
+	//// Set Eye position
+	//GLint eyeULocation = glGetUniformLocation(ShaderProgram, "camera_position");
+	//assert(eyeULocation != -1);
+	//glUniform3fv(eyeULocation, 1, Cam.position.get());
+
+	// Set normalMatrix
+	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
+	GLint nmaULocation = glGetUniformLocation(ShaderProgram, "normal_matrix");
+	//assert(nmaULocation != -1);
+	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
+																	// Made the lightsource rotate with the model!
+
+	GLint vmULocation = glGetUniformLocation(ShaderProgram, "viewMode");
+	//assert(vmULocation != -1);
+	glUniform1i(vmULocation, viewMode);
+
 	// tell the shader which T.U. to use
-	GLint diffSamplerULocation = glGetUniformLocation(ShaderProgram, "diffSampler");
+	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram, "diffSampler");
+	//assert(diffSamplerULocation != -1);
 	glUniform1i(diffSamplerULocation, 0);
-	GLint normSamplerULocation = glGetUniformLocation(ShaderProgram, "normSampler");
+	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram, "normSampler");
+	//assert(normSamplerULocation != -1);
 	glUniform1i(normSamplerULocation, 1);
-	GLint specSamplerULocation = glGetUniformLocation(ShaderProgram, "specSampler");
+	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram, "specSampler");
+	//assert(specSamplerULocation != -1);
 	glUniform1i(specSamplerULocation, 2);
 
 	// ********************************************************************************************
-
 
 	// Enable the vertex attributes and set their format
 	//positions
@@ -191,20 +226,20 @@ void display() {
 		3,											//datacount per
 		GL_FLOAT,									//datatype
 		GL_FALSE,									//normalize?
-		sizeof(ModelOBJ::Vertex),					//stride
-		reinterpret_cast<const GLvoid*>(0));		//
+		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
+		reinterpret_cast<const GLvoid*>(0));		//attrib offset
 
 	//texcoords
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
 		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(3* sizeof(float)));
+		reinterpret_cast<const GLvoid*>(3* sizeof(float))); //offset by pos
 
 	//normals
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
 		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(sizeof(Vector3f) + sizeof(GL_V2F))
+		reinterpret_cast<const GLvoid*>( 5* sizeof(float)) //offset by pos+texcoord
 	);
 
 	// Bind the buffers
@@ -221,9 +256,9 @@ void display() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, TObjectNormal0);
 
-	// Bind our specular texture in Texture Unit 2
-	//glActiveTexture(GL_TEXTURE2);
-	//glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
+	 //Bind our specular texture in Texture Unit 2
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
 
 	// ...
 
@@ -235,8 +270,14 @@ void display() {
 		0);
 
 	// Disable the vertex attributes (not necessary but recommended)
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0); // pos
+	glDisableVertexAttribArray(1); // uv
+	glDisableVertexAttribArray(2); // normal
+
+	//// Disable texture binds   <--- not sure if I should do this...
+	//glDisable(GL_TEXTURE0);
+	//glDisable(GL_TEXTURE1);
+	//glDisable(GL_TEXTURE2);
 
 	// Disable the shader program (not necessary but recommended)
 	glUseProgram(0);
@@ -247,6 +288,14 @@ void display() {
 
 /// Called at regular intervals (can be used for animations)
 void idle() {
+	clock_t now = clock(); //get the current “time”
+	if (animateScene) {
+		const float rotationSpeed = 60.f;
+		RotationX += rotationSpeed * (now - Timer) / CLOCKS_PER_SEC;
+		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
+	}
+	Timer = now; //store the current “time”
+	glutPostRedisplay();
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -278,7 +327,9 @@ void keyboard(unsigned char key, int x, int y) {
 		Cam.init();
 		Cam.ar = aspect_ratio;
 		break;
-
+	case 't':
+		animateScene = !animateScene;
+		break;
 		// --- utilities ---
 	case 'p': // toggle wireframe mode
 		wireframe = !wireframe;
@@ -297,6 +348,9 @@ void keyboard(unsigned char key, int x, int y) {
 			cout << "> done." << endl;
 			glutPostRedisplay();
 		}
+		break;
+	case 'v':
+		viewMode = (viewMode++)%6;
 		break;
 	case 'q':  // terminate the application
 		exit(0);
@@ -373,81 +427,6 @@ void motion(int x, int y) {
 	glutPostRedisplay();
 }
 
-/*
-/// Called whenever a keyboard button is pressed (only ASCII characters)
-void keyboard(const unsigned char key, int x, int y) {
-	switch (tolower(key)) {
-
-	case 'g': // show the current OpenGL version
-		cout << "OpenGL version " << glGetString(GL_VERSION) << endl;
-		break;
-
-	case 'q':  // terminate the application
-		exit(0);
-
-	case 'r':
-		cout << "Re-loading shaders..." << endl;
-		if (initShaders()) {
-			cout << "> done." << endl;
-			glutPostRedisplay();
-		}
-		break;
-
-	case 'w': // toggle wireframe mode
-		wireframe = !wireframe;
-		if (wireframe)
-			glPolygonMode(GL_FRONT, GL_LINE);   // draw polygons as wireframe
-		else
-			glPolygonMode(GL_FRONT, GL_FILL); // draw polygon surfaces
-		glutPostRedisplay();
-		break;
-
-	case 'p': // toggle perspective-orthographic
-		orthographic = !orthographic;
-		projection = cm.create_projection(orthographic, aspect_ratio);
-		glutPostRedisplay();
-		break;
-
-	default:
-		break;
-	}
-}
-
-/// Called whenever a mouse event occur (press or release)
-void mouse(int button, int state, int x, int y) {
-	// Store the current mouse status
-	MouseButton = button;
-	MouseX = x;
-	MouseY = y;
-}
-
-/// Called whenever the mouse is moving while a button is pressed
-void motion(int x, int y) {
-	if (MouseButton == GLUT_RIGHT_BUTTON) {
-		Translation.x() += 0.003f * (x - MouseX); // Accumulate translation amount
-		Translation.y() += 0.003f * (MouseY - y);
-		MouseX = x; // Store the current mouse position
-		MouseY = y;
-		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-	}
-	if (MouseButton == GLUT_MIDDLE_BUTTON) {
-		Scaling = clamp(Scaling + 0.003f * (MouseY - y), 0.1f, 100.0f); // Accumulate scaling amount
-		MouseX = x; // Store the current mouse position
-		MouseY = y;
-		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-	}
-	if (MouseButton == GLUT_LEFT_BUTTON) {
-		RotationX += 0.3f * (x - MouseX);
-		RotationY += 0.3f * (MouseY - y);
-		MouseX = x;
-		MouseY = y;
-		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-	}
-
-	glutPostRedisplay(); // Specify that the scene needs to be updated
-}
-*/
-
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 /// Initialize buffer objects
@@ -481,10 +460,53 @@ bool initBuffers() {
 		Model.getIndexBuffer(),
 		GL_STATIC_DRAW);
 
-
-
 	return true;
 } /* initBuffers() */
+
+bool initTextures()
+{
+	return initTexture("models\\crystalpot\\crystalshell_diff.png", ::TObjectDiffuse0, TextureDataDiffuse)
+		&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
+		&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec);
+}
+
+bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
+{
+	unsigned int fail = lodepng_decode_file(
+		&TextureData, // the texture will be stored here
+		&TWidth, &THeight, // width and height of the texture will be stored here
+		pathfilename, // path and file name
+		LCT_RGBA, // format of the image
+		8); // bits for each color channel (bit depth / num. of channels)
+	if (fail != 0)
+		return false;
+
+	glGenTextures(1, &TObject); // Create the texture object
+	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
+
+	// Set the texture data
+	glTexImage2D(GL_TEXTURE_2D, // type of texture
+		0,						// level of detail (used for mip-mapping only)
+		GL_RGBA,				// color components (how the data should be interpreted)
+		::TWidth, ::THeight,		// texture width (must be a power of 2 on some systems)
+		0,						// border thickness (just set this to 0)
+		GL_RGBA,				// data format (how the data is supplied)
+		GL_UNSIGNED_BYTE,		// the basic type of the data array
+		TextureData);			// pointer to the data
+
+	// Set texture parameters for minification and magnification
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	return true;
+}
 
 /// Initialize shaders. Return false if initialization fail
 bool initShaders() {
@@ -498,15 +520,16 @@ bool initShaders() {
 	}
 
 	// Create the shader objects and check for errors
-	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	const GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+	const GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 	if (vertShader == 0 || fragShader == 0) {
 		cerr << "Error: cannot create shader objects." << endl;
 		return false;
 	}
 
 	// Read and set the source code for the vertex shader
-	string text = readTextFile("shaders\\shader.ass3.v.glsl");
+	//string text = readTextFile("shaders\\shader.ass3.v.glsl");
+	string text = readTextFile("shaders\\vshader.glsl");
 	const char* code = text.c_str();
 	int length = static_cast<int>(text.length());
 	if (length == 0)
@@ -514,7 +537,8 @@ bool initShaders() {
 	glShaderSource(vertShader, 1, &code, &length);
 
 	// Read and set the source code for the fragment shader
-	string text2 = readTextFile("shaders\\shader.ass3.f.glsl");
+	//string text2 = readTextFile("shaders\\shader.ass3.f.glsl");
+	string text2 = readTextFile("shaders\\fshader.glsl");
 	const char *code2 = text2.c_str();
 	length = static_cast<int>(text2.length());
 	if (length == 0)
@@ -576,87 +600,7 @@ bool initShaders() {
 	return true;
 } /* initShaders() */
 
-bool initTextures()
-{
-	//unsigned int fail = lodepng_decode_file(
-	//	&TextureDataDiffuse, // the texture will be stored here
-	//	&TWidth, &THeight, // width and height of the texture will be stored here
-	//	"models\\crystalpot\\crystalshell_diff.png", // path and file name
-	//	LCT_RGBA, // format of the image
-	//	8); // bits for each color channel (bit depth / num. of channels)
-	//if (fail != 0)
-	//	return false;
 
-	//glGenTextures(1, &TObjectDiffuse0); // Create the texture object
-	//glBindTexture(GL_TEXTURE_2D, TObjectDiffuse0); // Bind it as a 2D texture
-
-	//// Set the texture data
-	//glTexImage2D(GL_TEXTURE_2D, // type of texture
-	//	0,						// level of detail (used for mip-mapping only)
-	//	GL_RGBA,				// color components (how the data should be interpreted)
-	//	TWidth, THeight,		// texture width (must be a power of 2 on some systems)
-	//	0,						// border thickness (just set this to 0)
-	//	GL_RGBA,				// data format (how the data is supplied)
-	//	GL_UNSIGNED_BYTE,		// the basic type of the data array
-	//	TextureDataDiffuse);			// pointer to the data
-
-	//// Set texture parameters for minification and magnification
-	////glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	////glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//	// ... nice trilinear filtering ...
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	//// ... which requires mipmaps. Generate them automatically.
-	//glGenerateMipmap(GL_TEXTURE_2D);
-	if(
-	initTexture("models\\crystalpot\\crystalshell_diff.png", TObjectDiffuse0, TextureDataDiffuse)
-	&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
-	&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec))
-	{
-		return true;
-	}
-	else return false;
-}
-
-bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
-{
-	unsigned int fail = lodepng_decode_file(
-		&TextureData, // the texture will be stored here
-		&TWidth, &THeight, // width and height of the texture will be stored here
-		pathfilename, // path and file name
-		LCT_RGBA, // format of the image
-		8); // bits for each color channel (bit depth / num. of channels)
-	if (fail != 0)
-		return false;
-
-	glGenTextures(1, &TObject); // Create the texture object
-	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
-
-	// Set the texture data
-	glTexImage2D(GL_TEXTURE_2D, // type of texture
-		0,						// level of detail (used for mip-mapping only)
-		GL_RGBA,				// color components (how the data should be interpreted)
-		TWidth, THeight,		// texture width (must be a power of 2 on some systems)
-		0,						// border thickness (just set this to 0)
-		GL_RGBA,				// data format (how the data is supplied)
-		GL_UNSIGNED_BYTE,		// the basic type of the data array
-		TextureData);			// pointer to the data
-
-	// Set texture parameters for minification and magnification
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		// ... nice trilinear filtering ...
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	// ... which requires mipmaps. Generate them automatically.
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	return true;
-}
 
 /// Read the specified file and return its content
 string readTextFile(const string& pathAndFileName) {
@@ -698,7 +642,5 @@ float clamp(const float in, const float min, const float max)
 	else out = in;
 	return out;
 }
-
-
 
 /* --- eof main.cpp --- */

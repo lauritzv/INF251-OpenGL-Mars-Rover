@@ -144,14 +144,14 @@
     <ClCompile Include="model_obj.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\fshader.glsl" />
     <None Include="shaders\shader.ass2.f.glsl" />
     <None Include="shaders\shader.ass2.v.glsl" />
-    <None Include="shaders\shader.ass3.f.glsl" />
-    <None Include="shaders\shader.ass3.v.glsl" />
-    <None Include="shaders\shader.f.glsl" />
+    <None Include="shaders\shader.ass3attempt2.f.glsl" />
+    <None Include="shaders\shader.ass3attempt2.v.glsl" />
     <None Include="shaders\shader.tutor6.f.glsl" />
     <None Include="shaders\shader.tutor6.v.glsl" />
-    <None Include="shaders\shader.v.glsl" />
+    <None Include="shaders\vshader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
