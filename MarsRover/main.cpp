@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 '\n' << "Left mouse rotates"<<
 '\n' << "Middle mouse changes fov"<<
 '\n' << "Right mouse moves camera"<<
-'\n' << "wasd first-person movement"<<
+'\n' << "wasd, space and c: first-person movement"<<
 '\n' <<
 '\n' << "r: resets camera"<<
 '\n' << "p: toggle wireframe-mode"<<
