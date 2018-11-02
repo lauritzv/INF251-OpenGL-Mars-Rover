@@ -98,9 +98,32 @@ void main() {
 			material_s_color *  
 			pow(dot(d_reflected_dir_nn, view_dir_nn), material_shininess),
 			0.0, 1.0);
+
+	vec3 vp = FragPos;
+    //Light direction and vertex directions.
+    vec3 L = normalize(d_light_dir_nn);
+    vec3 E = normalize(-vp);
+
+    //****BLINN PHONG****//
+//    float lambertian = max(dot(L,normal_nn), 0.0);
+	float lambertian = dot_d_light_normal;
+//    float specular = 0.0;
+//    if(lambertian > 0.0) {
+//        vec3 halfDir = normalize(L + E);
+//        float specAngle = max(dot(halfDir, normal_nn), 0.0);
+//        specular = pow(specAngle, material_shininess);
+//    }
+
+//	color = clamp(amb_color+(diff_color * lambertian)+(material_s_color),0.0, 1.0);
+
 	color = clamp(
-			amb_color + diff_color + spec_color,
-			0.0, 1.0);
+			amb_color
+			+ lambertian*diff_color 
+//			+ diff_color
+//			+ spec_color
+			,0.0, 1.0);
+	if (lambertian > 0.)
+		color = clamp(color + spec_color, 0., 1.);
 	// TODO: do the same for the headlight!
 	// notice that for the headlight dot(view_dir, light_dir) = ...
 	//p_light_dir_nn = view_dir_nn;

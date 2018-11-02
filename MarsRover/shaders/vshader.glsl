@@ -11,9 +11,6 @@ uniform mat3 NormalMatrix;
 uniform mat4 lightPositionMat;
 const vec4 lightPositionV = vec4(0.0,0.0,0.0,1.0);
 
-// The position of a vertex (per-vertex, from the VBO)
-//layout (location = 0) in vec3 aVertexPosition; 
-
 //We are implementing Blinn Phong lighting,
 //this means we must send interpolated normals and vertex positions(without perspecitve),
 //to the fragment shader.
@@ -25,8 +22,6 @@ out vec3 lightPos;
 //The vertex shader is very simple, and serves to pass most of the data
 //to the fragment shader.
 void main() {
-
-
     vTextureCoord = aTextureCoord;
     v = (ModelView * aVertexPosition).xyz;
     N = NormalMatrix * aVertexNormal;
