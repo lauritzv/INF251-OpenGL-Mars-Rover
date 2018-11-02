@@ -15,9 +15,8 @@ in vec3 d_light_direction;
 
 // Uniforms
 uniform vec3 d_light_a_color = vec3(1.,1.,1.); //white
-uniform float d_light_a_intensity = 0.1;
-uniform float d_light_d_intensity = 1.0;
-//uniform vec3 lightPos = vec3(0.,5.,-25.);
+uniform float d_light_a_intensity = 0.1; //amblight str.
+uniform float d_light_d_intensity = 1.0; //dirlight str.
 uniform vec3 camera_position;
 uniform float d_light_s_intensity = 1.;
 
@@ -34,10 +33,7 @@ uniform float material_shininess = 56.;
 
 // Per-frgament output color
 out vec4 FragColor;
-//vec3 computeDirectionalLight()
-//{
-//
-//}
+
 void main() { 
 
 	vec3 position = FragPos;
@@ -71,8 +67,8 @@ void main() {
 	// --- directional light ----
 	// compute the required values and vectors
 	// notice that input variables cannot be modified, so copy them first
-//	vec3 normal_nn = normalize(normal);
-	vec3 normal_nn = normalize((normTexColor) * normal);
+	vec3 normal_nn = normalize(normal);
+//	vec3 normal_nn = normalize(normTexColor * normal);
 	vec3 d_light_dir_nn = normalize(d_light_direction);
 	vec3 view_dir_nn = normalize(camera_position - position);
 	//d_light_dir_nn = view_dir_nn;
@@ -89,15 +85,14 @@ void main() {
 			0.0, 1.0);
 //	vec3 amb_color = vec3(0.,0.,0.);
 	vec3 diff_color = 
-	clamp(
-			material_d_color * dot_d_light_normal * d_light_d_intensity,
-//			vec3(1.,1.,1.) * dot_d_light_normal * vec3(1.,1.,1.);
+	clamp(	material_d_color * dot_d_light_normal * d_light_d_intensity,
 			0.0, 1.0);
 //	vec3 spec_color = vec3(0.,0.,0.);
-	vec3 spec_color = clamp(
-			material_s_color *  
-			pow(dot(d_reflected_dir_nn, view_dir_nn), material_shininess),
-			0.0, 1.0);
+	vec3 spec_color = 
+	clamp(
+		material_s_color *  
+		pow(dot(d_reflected_dir_nn, view_dir_nn), material_shininess),
+		0.0, 1.0);
 
 	vec3 vp = FragPos;
     //Light direction and vertex directions.
@@ -114,16 +109,17 @@ void main() {
 //        specular = pow(specAngle, material_shininess);
 //    }
 
-//	color = clamp(amb_color+(diff_color * lambertian)+(material_s_color),0.0, 1.0);
+	float specEnabled = 0.;
+	if (lambertian > 0.){
+		specEnabled = 1.;
+	}
 
-	color = clamp(
-			amb_color
-			+ lambertian*diff_color 
-//			+ diff_color
-//			+ spec_color
-			,0.0, 1.0);
-	if (lambertian > 0.)
-		color = clamp(color + spec_color, 0., 1.);
+	color = clamp(amb_color + lambertian * diff_color + specEnabled * spec_color,0.0, 1.0);
+//		
+//	if (lambertian > 0.){
+//			color = clamp(color + spec_color, 0., 1.);
+//	}
+//
 	// TODO: do the same for the headlight!
 	// notice that for the headlight dot(view_dir, light_dir) = ...
 	//p_light_dir_nn = view_dir_nn;
@@ -144,7 +140,7 @@ void main() {
 		
 	// pass the reuslt to the fragment shader
 	FragColor = vec4(color, 1.0);
-//	FragColor = vec4(normal_nn,1.);
+//	FragColor = vec4(clamp(normal,0.,1.),1.0);
 
 
 //	//Ambient

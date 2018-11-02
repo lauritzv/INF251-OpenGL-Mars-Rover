@@ -14,7 +14,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoords;
 layout (location = 2) in vec3 aNormal;
 
-uniform vec3 LightPosition_worldspace;
+uniform vec3 LightPosition_worldspace = vec3(0.,5.,0.);
 
 // Output vertex color (per-vertex, interpolated and passed to frag shader)
 //out vec4 vColor;
@@ -32,11 +32,12 @@ out vec3 d_light_direction;
 //
 void main() {
 	
-	vec3 d_light_position = vec3(0.,5.0,5.);
-	d_light_direction = normalize(vec3(0.,0.,0.) - d_light_position);
+	d_light_direction = normalize(vec3(0.,0.,0.) - LightPosition_worldspace);
+
 	//Fragment's non-projected position
 	FragPos = vec3(transformation * vec4(aPos,1.0));
 	fTexCoords = aTexCoords;
+
 	//Fragment's projected position
 	gl_Position = vec4(projection * vec4(FragPos,1.));
 	
