@@ -28,6 +28,7 @@ void motion(int, int);
 
 // --- Other methods ------------------------------------------------------------------------------
 bool initBuffers();
+bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath);
 bool initShaders();
 bool initTextures();
 bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData);
@@ -36,13 +37,32 @@ float clamp(float, float, float);
 
 // --- Global variables ---------------------------------------------------------------------------
 
-// 3D model
-ModelOBJ Model;		///< A 3D model
-GLuint VBO = 0;		///< A vertex buffer object
-GLuint IBO = 0;		///< An index buffer object
+// 3D model 0
+ModelOBJ Model0;		///< A 3D model
+GLuint VBO0 = 0;		///< A vertex buffer object
+GLuint IBO0 = 0;		///< An index buffer object
+
+// 3D model 1
+ModelOBJ Model1;
+GLuint VBO1 = 0;
+GLuint IBO1 = 0;
+			   
+// 3D model 2
+ModelOBJ Model2;
+GLuint VBO2 = 0;
+GLuint IBO2 = 0;
+			 
+// 3D model 3
+ModelOBJ Model3;
+GLuint VBO3 = 0;
+GLuint IBO3 = 0;
+
 
 // Shaders
-GLuint ShaderProgram = 0;	///< A shader program
+GLuint ShaderProgram0 = 0;	///< A shader program
+GLuint ShaderProgram1 = 0;	///< A shader program
+GLuint ShaderProgram2 = 0;	///< A shader program
+GLuint ShaderProgram3 = 0;	///< A shader program
 
 // Textures
 GLuint TObjectDiffuse0 = -1, TObjectNormal0 = -1, TObjectSpecular0 = -1;
@@ -168,51 +188,51 @@ void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Enable the shader program
-	assert(ShaderProgram != 0);
-	glUseProgram(ShaderProgram);
+	assert(ShaderProgram0 != 0);
+	glUseProgram(ShaderProgram0);
 
 	// *** New stuff ******************************************************************************
 
 	// Set transformations
-	GLint trULocation = glGetUniformLocation(ShaderProgram, "transformation");
+	GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
 	assert(trULocation != -1);
 	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
 
 	// Set projection
-	GLint prULocation = glGetUniformLocation(ShaderProgram, "projection");
+	GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
 	assert(prULocation != -1);
 	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
 
 	// Set lightPositionMatrix
-	GLint lpULocation = glGetUniformLocation(ShaderProgram, "lightPositionMat");
+	GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
 	//assert(lpULocation != -1);
 	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
 	//// Set Eye position
-	//GLint eyeULocation = glGetUniformLocation(ShaderProgram, "camera_position");
+	//GLint eyeULocation = glGetUniformLocation(ShaderProgram0, "camera_position");
 	//assert(eyeULocation != -1);
 	//glUniform3fv(eyeULocation, 1, Cam.position.get());
 
 	// Set normalMatrix
 	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
-	GLint nmaULocation = glGetUniformLocation(ShaderProgram, "normal_matrix");
+	GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
 	//assert(nmaULocation != -1);
 	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
 																	// Made the lightsource rotate with the model!
 
-	GLint vmULocation = glGetUniformLocation(ShaderProgram, "viewMode");
+	GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
 	//assert(vmULocation != -1);
 	glUniform1i(vmULocation, viewMode);
 
 	// tell the shader which T.U. to use
-	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram, "diffSampler");
+	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram0, "diffSampler");
 	//assert(diffSamplerULocation != -1);
 	glUniform1i(diffSamplerULocation, 0);
-	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram, "normSampler");
+	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram0, "normSampler");
 	//assert(normSamplerULocation != -1);
 	glUniform1i(normSamplerULocation, 1);
-	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram, "specSampler");
+	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram0, "specSampler");
 	//assert(specSamplerULocation != -1);
 	glUniform1i(specSamplerULocation, 2);
 
@@ -243,8 +263,8 @@ void display() {
 	);
 
 	// Bind the buffers
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO0);
 
 	// set the active texture units
 
@@ -265,7 +285,7 @@ void display() {
 	// Draw the elements on the GPU
 	glDrawElements(
 		GL_TRIANGLES,
-		Model.getNumberOfIndices(),
+		Model0.getNumberOfIndices(),
 		GL_UNSIGNED_INT,
 		0);
 
@@ -296,6 +316,222 @@ void idle() {
 	}
 	Timer = now; //store the current “time”
 	glutPostRedisplay();
+}
+
+// ************************************************************************************************
+// *** Other methods implementation ***************************************************************
+/// Initialize buffer objects
+bool initBuffers() {
+	return 
+	initModel(Model0, VBO0, IBO0, "models\\rover\\rover.obj") &&
+	initModel(Model1, VBO1, IBO1, "models\\capsule\\capsule.obj");
+
+} /* initBuffers() */
+
+bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath)
+{
+	// Load the OBJ model
+	if (!model.import(modelpath)) {
+		cerr << "Error: cannot load model: " << modelpath << "." << endl;
+		return false;
+	}
+
+	// VBO0
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER,
+		model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
+		model.getVertexBuffer(),
+		GL_STATIC_DRAW);
+
+	// IBO0
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		3 * model.getNumberOfTriangles() * sizeof(int),
+		model.getIndexBuffer(),
+		GL_STATIC_DRAW);
+	
+	return true;
+}
+
+bool initTextures()
+{
+	return initTexture("models\\crystalpot\\crystalshell_diff.png", ::TObjectDiffuse0, TextureDataDiffuse)
+		&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
+		&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec);
+}
+
+bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
+{
+	unsigned int fail = lodepng_decode_file(
+		&TextureData, // the texture will be stored here
+		&TWidth, &THeight, // width and height of the texture will be stored here
+		pathfilename, // path and file name
+		LCT_RGBA, // format of the image
+		8); // bits for each color channel (bit depth / num. of channels)
+	if (fail != 0)
+		return false;
+
+	glGenTextures(1, &TObject); // Create the texture object
+	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
+
+	// Set the texture data
+	glTexImage2D(GL_TEXTURE_2D, // type of texture
+		0,						// level of detail (used for mip-mapping only)
+		GL_RGBA,				// color components (how the data should be interpreted)
+		::TWidth, ::THeight,		// texture width (must be a power of 2 on some systems)
+		0,						// border thickness (just set this to 0)
+		GL_RGBA,				// data format (how the data is supplied)
+		GL_UNSIGNED_BYTE,		// the basic type of the data array
+		TextureData);			// pointer to the data
+
+	// Set texture parameters for minification and magnification
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	return true;
+}
+
+/// Initialize shaders. Return false if initialization fail
+bool initShaders() {
+	// Create the shader program and check for errors
+	if (ShaderProgram0 != 0)
+		glDeleteProgram(ShaderProgram0);
+	ShaderProgram0 = glCreateProgram();
+	if (ShaderProgram0 == 0) {
+		cerr << "Error: cannot create shader program." << endl;
+		return false;
+	}
+
+	// Create the shader objects and check for errors
+	const GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+	const GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	if (vertShader == 0 || fragShader == 0) {
+		cerr << "Error: cannot create shader objects." << endl;
+		return false;
+	}
+
+	// Read and set the source code for the vertex shader
+	string text = readTextFile("shaders\\vshader.glsl");
+	const char* code = text.c_str();
+	int length = static_cast<int>(text.length());
+	if (length == 0)
+		return false;
+	glShaderSource(vertShader, 1, &code, &length);
+
+	// Read and set the source code for the fragment shader
+	string text2 = readTextFile("shaders\\fshader.glsl");
+	const char *code2 = text2.c_str();
+	length = static_cast<int>(text2.length());
+	if (length == 0)
+		return false;
+	glShaderSource(fragShader, 1, &code2, &length);
+
+	// Compile the shaders
+	glCompileShader(vertShader);
+	glCompileShader(fragShader);
+
+	// Check for compilation error
+	GLint success;
+	GLchar errorLog[1024];
+	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(vertShader, 1024, nullptr, errorLog);
+		cerr << "Error: cannot compile vertex shader.\nError log:\n" << errorLog << endl;
+		getchar();
+		return false;
+	}
+	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(fragShader, 1024, nullptr, errorLog);
+		cerr << "Error: cannot compile fragment shader.\nError log:\n" << errorLog << endl;
+		getchar();
+		return false;
+	}
+
+	// Attach the shader to the program and link it
+	glAttachShader(ShaderProgram0, vertShader);
+	glAttachShader(ShaderProgram0, fragShader);
+	glLinkProgram(ShaderProgram0);
+
+	// Check for linking error
+	glGetProgramiv(ShaderProgram0, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(ShaderProgram0, 1024, nullptr, errorLog);
+		cerr << "Error: cannot link shader program.\nError log:\n" << errorLog << endl;
+		getchar();
+		return false;
+	}
+
+	// Make sure that the shader program can run
+	glValidateProgram(ShaderProgram0);
+
+	// Check for validation error
+	glGetProgramiv(ShaderProgram0, GL_VALIDATE_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(ShaderProgram0, 1024, nullptr, errorLog);
+		cerr << "Error: cannot validate shader program.\nError log:\n" << errorLog << endl;
+		getchar();
+		return false;
+	}
+
+	// Shaders can be deleted now
+	glDeleteShader(vertShader);
+	glDeleteShader(fragShader);
+
+	return true;
+} /* initShaders() */
+
+
+
+/// Read the specified file and return its content
+string readTextFile(const string& pathAndFileName) {
+	// Try to open the file
+	ifstream fileIn(pathAndFileName);
+	if (!fileIn.is_open()) {
+		cerr << "Error: cannot open file " << pathAndFileName.c_str();
+		return "";
+	}
+
+	// Read the file
+	string text = "";
+	string line;
+	while (!fileIn.eof()) {
+		getline(fileIn, line);
+		text += line + "\n";
+		bool bad = fileIn.bad();
+		bool fail = fileIn.fail();
+		if (fileIn.bad() || (fileIn.fail() && !fileIn.eof())) {
+			cerr << "Warning: problems reading file " << pathAndFileName.c_str()
+				<< "\nBad flag: " << bad << "\tFail flag: " << fail
+				<< "\nText read: \n" << text.c_str();
+			fileIn.close();
+			return text;
+		}
+	}
+	// finalize
+	fileIn.close();
+
+	return text;
+} /* readTextFile() */
+
+///clamp that float
+float clamp(const float in, const float min, const float max)
+{
+	float out;
+	if (in < min) out = min;
+	else if (in > max) out = max;
+	else out = in;
+	return out;
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -350,7 +586,7 @@ void keyboard(unsigned char key, int x, int y) {
 		}
 		break;
 	case 'v':
-		viewMode = (viewMode++)%6;
+		viewMode = (viewMode++) % 6;
 		break;
 	case 'q':  // terminate the application
 		exit(0);
@@ -427,220 +663,5 @@ void motion(int x, int y) {
 	glutPostRedisplay();
 }
 
-// ************************************************************************************************
-// *** Other methods implementation ***************************************************************
-/// Initialize buffer objects
-bool initBuffers() {
-	// Load the OBJ model
-	if (!Model.import(
-		//"models\\capsule\\capsule.obj"
-		//"models\\crystalpot\\crystalpot.obj"
-		"models\\rover\\rover.obj"
-		)) {
-		cerr << "Error: cannot load model." << endl;
-		return false;
-	}
-
-	// Notice that normals may not be stored in the model
-	// This issue will be dealt with in the next lecture
-
-	// VBO
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER,
-		Model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
-		Model.getVertexBuffer(),
-		GL_STATIC_DRAW);
-
-	// IBO
-	glGenBuffers(1, &IBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		3 * Model.getNumberOfTriangles() * sizeof(int),
-		Model.getIndexBuffer(),
-		GL_STATIC_DRAW);
-
-	return true;
-} /* initBuffers() */
-
-bool initTextures()
-{
-	return initTexture("models\\crystalpot\\crystalshell_diff.png", ::TObjectDiffuse0, TextureDataDiffuse)
-		&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
-		&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec);
-}
-
-bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
-{
-	unsigned int fail = lodepng_decode_file(
-		&TextureData, // the texture will be stored here
-		&TWidth, &THeight, // width and height of the texture will be stored here
-		pathfilename, // path and file name
-		LCT_RGBA, // format of the image
-		8); // bits for each color channel (bit depth / num. of channels)
-	if (fail != 0)
-		return false;
-
-	glGenTextures(1, &TObject); // Create the texture object
-	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
-
-	// Set the texture data
-	glTexImage2D(GL_TEXTURE_2D, // type of texture
-		0,						// level of detail (used for mip-mapping only)
-		GL_RGBA,				// color components (how the data should be interpreted)
-		::TWidth, ::THeight,		// texture width (must be a power of 2 on some systems)
-		0,						// border thickness (just set this to 0)
-		GL_RGBA,				// data format (how the data is supplied)
-		GL_UNSIGNED_BYTE,		// the basic type of the data array
-		TextureData);			// pointer to the data
-
-	// Set texture parameters for minification and magnification
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		// ... nice trilinear filtering ...
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	// ... which requires mipmaps. Generate them automatically.
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	return true;
-}
-
-/// Initialize shaders. Return false if initialization fail
-bool initShaders() {
-	// Create the shader program and check for errors
-	if (ShaderProgram != 0)
-		glDeleteProgram(ShaderProgram);
-	ShaderProgram = glCreateProgram();
-	if (ShaderProgram == 0) {
-		cerr << "Error: cannot create shader program." << endl;
-		return false;
-	}
-
-	// Create the shader objects and check for errors
-	const GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-	const GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	if (vertShader == 0 || fragShader == 0) {
-		cerr << "Error: cannot create shader objects." << endl;
-		return false;
-	}
-
-	// Read and set the source code for the vertex shader
-	//string text = readTextFile("shaders\\shader.ass3.v.glsl");
-	string text = readTextFile("shaders\\vshader.glsl");
-	const char* code = text.c_str();
-	int length = static_cast<int>(text.length());
-	if (length == 0)
-		return false;
-	glShaderSource(vertShader, 1, &code, &length);
-
-	// Read and set the source code for the fragment shader
-	//string text2 = readTextFile("shaders\\shader.ass3.f.glsl");
-	string text2 = readTextFile("shaders\\fshader.glsl");
-	const char *code2 = text2.c_str();
-	length = static_cast<int>(text2.length());
-	if (length == 0)
-		return false;
-	glShaderSource(fragShader, 1, &code2, &length);
-
-	// Compile the shaders
-	glCompileShader(vertShader);
-	glCompileShader(fragShader);
-
-	// Check for compilation error
-	GLint success;
-	GLchar errorLog[1024];
-	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(vertShader, 1024, nullptr, errorLog);
-		cerr << "Error: cannot compile vertex shader.\nError log:\n" << errorLog << endl;
-		getchar();
-		return false;
-	}
-	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(fragShader, 1024, nullptr, errorLog);
-		cerr << "Error: cannot compile fragment shader.\nError log:\n" << errorLog << endl;
-		getchar();
-		return false;
-	}
-
-	// Attach the shader to the program and link it
-	glAttachShader(ShaderProgram, vertShader);
-	glAttachShader(ShaderProgram, fragShader);
-	glLinkProgram(ShaderProgram);
-
-	// Check for linking error
-	glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(ShaderProgram, 1024, nullptr, errorLog);
-		cerr << "Error: cannot link shader program.\nError log:\n" << errorLog << endl;
-		getchar();
-		return false;
-	}
-
-	// Make sure that the shader program can run
-	glValidateProgram(ShaderProgram);
-
-	// Check for validation error
-	glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(ShaderProgram, 1024, nullptr, errorLog);
-		cerr << "Error: cannot validate shader program.\nError log:\n" << errorLog << endl;
-		getchar();
-		return false;
-	}
-
-	// Shaders can be deleted now
-	glDeleteShader(vertShader);
-	glDeleteShader(fragShader);
-
-	return true;
-} /* initShaders() */
-
-
-
-/// Read the specified file and return its content
-string readTextFile(const string& pathAndFileName) {
-	// Try to open the file
-	ifstream fileIn(pathAndFileName);
-	if (!fileIn.is_open()) {
-		cerr << "Error: cannot open file " << pathAndFileName.c_str();
-		return "";
-	}
-
-	// Read the file
-	string text = "";
-	string line;
-	while (!fileIn.eof()) {
-		getline(fileIn, line);
-		text += line + "\n";
-		bool bad = fileIn.bad();
-		bool fail = fileIn.fail();
-		if (fileIn.bad() || (fileIn.fail() && !fileIn.eof())) {
-			cerr << "Warning: problems reading file " << pathAndFileName.c_str()
-				<< "\nBad flag: " << bad << "\tFail flag: " << fail
-				<< "\nText read: \n" << text.c_str();
-			fileIn.close();
-			return text;
-		}
-	}
-	// finalize
-	fileIn.close();
-
-	return text;
-} /* readTextFile() */
-
-///clamp that float
-float clamp(const float in, const float min, const float max)
-{
-	float out;
-	if (in < min) out = min;
-	else if (in > max) out = max;
-	else out = in;
-	return out;
-}
 
 /* --- eof main.cpp --- */
