@@ -133,6 +133,7 @@
     <ClInclude Include="create_matrix.h" />
     <ClInclude Include="lodepng.h" />
     <ClInclude Include="Matrix4.h" />
+    <ClInclude Include="MeshObject.h" />
     <ClInclude Include="model_obj.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
@@ -141,6 +142,7 @@
     <ClCompile Include="create_matrix.cpp" />
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MeshObject.cpp" />
     <ClCompile Include="model_obj.cpp" />
   </ItemGroup>
   <ItemGroup>

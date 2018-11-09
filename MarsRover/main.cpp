@@ -16,6 +16,7 @@
 #include "Camera.h"
 #include <algorithm>
 #include <ctime>
+#include "MeshObject.h"
 
 using namespace std;
 
@@ -32,37 +33,17 @@ bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath)
 bool initShaders();
 bool initTextures();
 bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData);
+void drawObject(ModelOBJ &model, GLuint &vbo, GLuint &ibo, GLuint &tobjectdiff, GLuint &tobjectnorm, GLuint &tobjectspec);
+void setCommonUniforms();
 string readTextFile(const string&);
 float clamp(float, float, float);
 
 // --- Global variables ---------------------------------------------------------------------------
 
-// 3D model 0
-ModelOBJ Model0;		///< A 3D model
-GLuint VBO0 = 0;		///< A vertex buffer object
-GLuint IBO0 = 0;		///< An index buffer object
-
-// 3D model 1
-ModelOBJ Model1;
-GLuint VBO1 = 0;
-GLuint IBO1 = 0;
-			   
-// 3D model 2
-ModelOBJ Model2;
-GLuint VBO2 = 0;
-GLuint IBO2 = 0;
-			 
-// 3D model 3
-ModelOBJ Model3;
-GLuint VBO3 = 0;
-GLuint IBO3 = 0;
-
+vector<MeshObject> mesh_objects;
 
 // Shaders
 GLuint ShaderProgram0 = 0;	///< A shader program
-GLuint ShaderProgram1 = 0;	///< A shader program
-GLuint ShaderProgram2 = 0;	///< A shader program
-GLuint ShaderProgram3 = 0;	///< A shader program
 
 // Textures
 GLuint TObjectDiffuse0 = -1, TObjectNormal0 = -1, TObjectSpecular0 = -1;
@@ -121,11 +102,6 @@ int main(int argc, char **argv) {
 	glutCreateWindow("OpenGL Tutorial");
 
 	aspect_ratio = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
-
-	//glMatrixMode(GL_PROJECTION);
-	//glLoadIdentity();
-	//glMatrixMode(GL_MODELVIEW);
-	//glLoadIdentity();
 
 	// Initialize OpenGL callbacks
 	glutDisplayFunc(display);
@@ -191,113 +167,21 @@ void display() {
 	assert(ShaderProgram0 != 0);
 	glUseProgram(ShaderProgram0);
 
-	// *** New stuff ******************************************************************************
-
-	// Set transformations
-	GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
-	assert(trULocation != -1);
-	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
-
-	// Set projection
-	GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
-	assert(prULocation != -1);
-	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
-	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
-
-	// Set lightPositionMatrix
-	GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
-	//assert(lpULocation != -1);
-	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
-
-	//// Set Eye position
-	//GLint eyeULocation = glGetUniformLocation(ShaderProgram0, "camera_position");
-	//assert(eyeULocation != -1);
-	//glUniform3fv(eyeULocation, 1, Cam.position.get());
-
-	// Set normalMatrix
-	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
-	GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
-	//assert(nmaULocation != -1);
-	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
-																	// Made the lightsource rotate with the model!
-
-	GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
-	//assert(vmULocation != -1);
-	glUniform1i(vmULocation, viewMode);
-
-	// tell the shader which T.U. to use
-	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram0, "diffSampler");
-	//assert(diffSamplerULocation != -1);
-	glUniform1i(diffSamplerULocation, 0);
-	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram0, "normSampler");
-	//assert(normSamplerULocation != -1);
-	glUniform1i(normSamplerULocation, 1);
-	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram0, "specSampler");
-	//assert(specSamplerULocation != -1);
-	glUniform1i(specSamplerULocation, 2);
-
-	// ********************************************************************************************
+	setCommonUniforms();
 
 	// Enable the vertex attributes and set their format
-	//positions
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(
-		0,											//location
-		3,											//datacount per
-		GL_FLOAT,									//datatype
-		GL_FALSE,									//normalize?
-		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
-		reinterpret_cast<const GLvoid*>(0));		//attrib offset
+	glEnableVertexAttribArray(0); //pos
+	glEnableVertexAttribArray(1); //uv-coord
+	glEnableVertexAttribArray(2); //normals
 
-	//texcoords
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(3* sizeof(float))); //offset by pos
+	//draw objects:
+	for (auto& el : mesh_objects)
+		el.DrawObject();
 
-	//normals
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>( 5* sizeof(float)) //offset by pos+texcoord
-	);
-
-	// Bind the buffers
-	glBindBuffer(GL_ARRAY_BUFFER, VBO0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO0);
-
-	// set the active texture units
-
-	// Bind our diffuse texture in Texture Unit 0
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, TObjectDiffuse0);
-
-	// Bind our normal texture in Texture Unit 1
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, TObjectNormal0);
-
-	 //Bind our specular texture in Texture Unit 2
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, TObjectSpecular0);
-
-	// ...
-
-	// Draw the elements on the GPU
-	glDrawElements(
-		GL_TRIANGLES,
-		Model0.getNumberOfIndices(),
-		GL_UNSIGNED_INT,
-		0);
-
-	// Disable the vertex attributes (not necessary but recommended)
+	//cleanup VAOs
 	glDisableVertexAttribArray(0); // pos
 	glDisableVertexAttribArray(1); // uv
 	glDisableVertexAttribArray(2); // normal
-
-	//// Disable texture binds   <--- not sure if I should do this...
-	//glDisable(GL_TEXTURE0);
-	//glDisable(GL_TEXTURE1);
-	//glDisable(GL_TEXTURE2);
 
 	// Disable the shader program (not necessary but recommended)
 	glUseProgram(0);
@@ -318,40 +202,60 @@ void idle() {
 	glutPostRedisplay();
 }
 
+void setCommonUniforms()
+{
+	// Set transformations
+	GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
+	assert(trULocation != -1);
+	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
+
+	// Set projection
+	GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
+	assert(prULocation != -1);
+	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
+	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
+
+	// Set lightPositionMatrix
+	GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
+	//assert(lpULocation != -1);
+	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
+
+	// Set normalMatrix
+	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
+	GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
+	//assert(nmaULocation != -1);
+	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
+																	// Made the lightsource rotate with the model!
+	GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
+	//assert(vmULocation != -1);
+	glUniform1i(vmULocation, viewMode);
+
+	// tell the shader which T.U. to use
+	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram0, "diffSampler");
+	//assert(diffSamplerULocation != -1);
+	glUniform1i(diffSamplerULocation, 0);
+	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram0, "normSampler");
+	//assert(normSamplerULocation != -1);
+	glUniform1i(normSamplerULocation, 1);
+	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram0, "specSampler");
+	//assert(specSamplerULocation != -1);
+	glUniform1i(specSamplerULocation, 2);
+}
+
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 /// Initialize buffer objects
 bool initBuffers() {
-	return 
-	initModel(Model0, VBO0, IBO0, "models\\rover\\rover.obj") &&
-	initModel(Model1, VBO1, IBO1, "models\\capsule\\capsule.obj");
 
-} /* initBuffers() */
+	mesh_objects.emplace_back("models\\rover\\rover.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
+	mesh_objects.emplace_back("models\\capsule\\capsule.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
+	mesh_objects.emplace_back("models\\crystalpot\\crystalpot.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
 
-bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath)
-{
-	// Load the OBJ model
-	if (!model.import(modelpath)) {
-		cerr << "Error: cannot load model: " << modelpath << "." << endl;
-		return false;
+	for (auto& el : mesh_objects)
+	{
+		if (!el.successfullyImported)
+			return false;
 	}
-
-	// VBO0
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER,
-		model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
-		model.getVertexBuffer(),
-		GL_STATIC_DRAW);
-
-	// IBO0
-	glGenBuffers(1, &ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		3 * model.getNumberOfTriangles() * sizeof(int),
-		model.getIndexBuffer(),
-		GL_STATIC_DRAW);
-	
 	return true;
 }
 
@@ -380,7 +284,7 @@ bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &Text
 	glTexImage2D(GL_TEXTURE_2D, // type of texture
 		0,						// level of detail (used for mip-mapping only)
 		GL_RGBA,				// color components (how the data should be interpreted)
-		::TWidth, ::THeight,		// texture width (must be a power of 2 on some systems)
+		TWidth, THeight,		// texture width (must be a power of 2 on some systems)
 		0,						// border thickness (just set this to 0)
 		GL_RGBA,				// data format (how the data is supplied)
 		GL_UNSIGNED_BYTE,		// the basic type of the data array
@@ -491,8 +395,6 @@ bool initShaders() {
 	return true;
 } /* initShaders() */
 
-
-
 /// Read the specified file and return its content
 string readTextFile(const string& pathAndFileName) {
 	// Try to open the file
@@ -503,13 +405,13 @@ string readTextFile(const string& pathAndFileName) {
 	}
 
 	// Read the file
-	string text = "";
+	string text;
 	string line;
 	while (!fileIn.eof()) {
 		getline(fileIn, line);
 		text += line + "\n";
-		bool bad = fileIn.bad();
-		bool fail = fileIn.fail();
+		const bool bad = fileIn.bad();
+		const bool fail = fileIn.fail();
 		if (fileIn.bad() || (fileIn.fail() && !fileIn.eof())) {
 			cerr << "Warning: problems reading file " << pathAndFileName.c_str()
 				<< "\nBad flag: " << bad << "\tFail flag: " << fail
@@ -663,5 +565,97 @@ void motion(int x, int y) {
 	glutPostRedisplay();
 }
 
+/*
+void drawObject(
+	ModelOBJ &model,
+	GLuint &vbo,
+	GLuint &ibo,
+	GLuint &tobjectdiff,
+	GLuint &tobjectnorm,
+	GLuint &tobjectspec)
+{
+	// Enable the vertex attributes and set their format
+	//glEnableVertexAttribArray(0); //pos
+	//glEnableVertexAttribArray(1); //uv-coord
+	//glEnableVertexAttribArray(2); //normals
+
+	// Bind the buffers
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
+	// set the active texture units
+
+	// Bind our diffuse texture in Texture Unit 0
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tobjectdiff);
+
+	// Bind our normal texture in Texture Unit 1
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, tobjectnorm);
+
+	//Bind our specular texture in Texture Unit 2
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, tobjectspec);
+
+	//position
+	glVertexAttribPointer(
+		0,											//location
+		3,											//datacount per
+		GL_FLOAT,									//datatype
+		GL_FALSE,									//normalize?
+		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
+		reinterpret_cast<const GLvoid*>(0));		//attrib offset
+
+	//texcoords
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
+		sizeof(ModelOBJ::Vertex),
+		reinterpret_cast<const GLvoid*>(3 * sizeof(float))); //offset by pos
+
+	//normals
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+		sizeof(ModelOBJ::Vertex),
+		reinterpret_cast<const GLvoid*>(5 * sizeof(float)) //offset by pos+texcoord
+	);
+
+	// Draw the elements on the GPU
+	glDrawElements(
+		GL_TRIANGLES,
+		model.getNumberOfIndices(),
+		GL_UNSIGNED_INT,
+		0);
+
+	//glDisableVertexAttribArray(0); // pos
+	//glDisableVertexAttribArray(1); // uv
+	//glDisableVertexAttribArray(2); // normal
+}
+
+bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath)
+{
+	// Load the OBJ model
+	if (!model.import(modelpath)) {
+		cerr << "Error: cannot load model: " << modelpath << "." << endl;
+		return false;
+	}
+
+	// VBO
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER,
+		model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
+		model.getVertexBuffer(),
+		GL_STATIC_DRAW);
+
+	// IBO
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		3 * model.getNumberOfTriangles() * sizeof(unsigned int),
+		model.getIndexBuffer(),
+		GL_STATIC_DRAW);
+
+	//cout << "initialized " << modelpath << " with ibo: " << std::to_string(ibo) << " and vbo: " << std::to_string(vbo) << "." << endl;
+
+	return true;
+}*/
 
 /* --- eof main.cpp --- */
