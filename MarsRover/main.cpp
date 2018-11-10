@@ -199,40 +199,35 @@ void idle() {
 void setCommonUniforms()
 {
 	// Set transformations
-	GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
+	const GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
 	assert(trULocation != -1);
 	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
 
 	// Set projection
-	GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
+	const GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
 	assert(prULocation != -1);
-	//glUniformMatrix4fv(prULocation, 1, false, projection.get());
+	glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
 
 	// Set lightPositionMatrix
-	GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
-	//assert(lpULocation != -1);
+	const GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
 	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
 	// Set normalMatrix
 	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
-	GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
-	//assert(nmaULocation != -1);
+	const GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
 	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
 																	// Made the lightsource rotate with the model!
-	GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
-	//assert(vmULocation != -1);
+	const GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
+	assert(vmULocation != -1);
 	glUniform1i(vmULocation, viewMode);
 
 	// tell the shader which T.U. to use
 	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram0, "diffSampler");
-	//assert(diffSamplerULocation != -1);
 	glUniform1i(diffSamplerULocation, 0);
 	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram0, "normSampler");
-	//assert(normSamplerULocation != -1);
 	glUniform1i(normSamplerULocation, 1);
 	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram0, "specSampler");
-	//assert(specSamplerULocation != -1);
 	glUniform1i(specSamplerULocation, 2);
 }
 
@@ -245,10 +240,8 @@ bool initModels() {
 	mesh_objects.emplace_back("models\\crystalpot\\crystalpot.obj", material_objects[0]);
 
 	for (auto& el : mesh_objects)
-	{
 		if (!el.successfullyImported)
 			return false;
-	}
 	return true;
 }
 
@@ -264,10 +257,8 @@ bool initTextures()
 		"models\\rover\\rust_spec.png");
 
 	for (auto& el : material_objects)
-	{
 		if (!el.successfullyImported)
 			return false;
-	}
 	return true;
 }
 
