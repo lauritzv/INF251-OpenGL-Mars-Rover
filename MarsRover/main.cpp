@@ -236,8 +236,19 @@ void setCommonUniforms()
 /// Initialize buffer objects
 bool initModels() {
 
-	mesh_objects.emplace_back("models\\rover\\rover.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\crystalpot\\crystalpot.obj", material_objects[0]);
+	mesh_objects.emplace_back("models\\rover\\rover_body_shell.obj", material_objects[0]);
+	mesh_objects.emplace_back("models\\rover\\rover_static_metal.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_temp_parts.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm0.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm1.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm2.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm3.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_gratings.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_static_hoses.obj", material_objects[4]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm1_hose.obj", material_objects[4]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm2_hose.obj", material_objects[4]);
+	mesh_objects.emplace_back("models\\rover\\rover_body_flooring.obj", material_objects[2]);
+	mesh_objects.emplace_back("models\\rover\\rover_wings.obj", material_objects[3]);
 
 	for (auto& el : mesh_objects)
 		if (!el.successfullyImported)
@@ -248,13 +259,27 @@ bool initModels() {
 bool initTextures()
 {
 	material_objects.emplace_back(
-		"models\\crystalpot\\crystalshell_diff.png",
-		"models\\crystalpot\\crystalshell_norm.png",
-		"models\\crystalpot\\crystalshell_ao.png");
+		"models\\rover\\shell_body_diff.png",
+		"models\\rover\\crystalshell_norm.png",
+		"models\\rover\\crystalshell_ao.png");
 	material_objects.emplace_back(
 		"models\\rover\\rust_comb.png",
 		"models\\rover\\rust_norm.png",
 		"models\\rover\\rust_spec.png");
+	material_objects.emplace_back(
+		"models\\rover\\grating_comb.png",
+		"models\\rover\\grating_norm.png",
+		"models\\rover\\grating_ao.png");
+	material_objects.emplace_back(
+		"models\\rover\\wings_diff.png",
+		"models\\rover\\wings_norm.png",
+		"models\\rover\\wings_spec.png");
+	material_objects.emplace_back(
+		"models\\rover\\hose_diff.png",
+		"models\\rover\\rust_spec.png",
+		"models\\rover\\rust_spec.png");
+
+
 
 	for (auto& el : material_objects)
 		if (!el.successfullyImported)
