@@ -236,19 +236,19 @@ void setCommonUniforms()
 /// Initialize buffer objects
 bool initModels() {
 
-	mesh_objects.emplace_back("models\\rover\\rover_body_shell.obj", material_objects[0]);
-	mesh_objects.emplace_back("models\\rover\\rover_static_metal.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_temp_parts.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm0.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\rover\\rover_body_shell.obj", material_objects[0]);		// green shell-textured rover bodyparts
+	mesh_objects.emplace_back("models\\rover\\rover_static_metal.obj", material_objects[1]);	// non-arm metal parts
+	mesh_objects.emplace_back("models\\rover\\rover_temp_parts.obj", material_objects[1]);		// not yet correctly textured parts
+	mesh_objects.emplace_back("models\\rover\\rover_arm0.obj", material_objects[1]);			// lowest robotic arm joint
 	mesh_objects.emplace_back("models\\rover\\rover_arm1.obj", material_objects[1]);
 	mesh_objects.emplace_back("models\\rover\\rover_arm2.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm3.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_gratings.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_static_hoses.obj", material_objects[4]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm1_hose.obj", material_objects[4]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm2_hose.obj", material_objects[4]);
-	mesh_objects.emplace_back("models\\rover\\rover_body_flooring.obj", material_objects[2]);
-	mesh_objects.emplace_back("models\\rover\\rover_wings.obj", material_objects[3]);
+	mesh_objects.emplace_back("models\\rover\\rover_arm3.obj", material_objects[1]);			// outermost robotic arm joint
+	mesh_objects.emplace_back("models\\rover\\rover_gratings.obj", material_objects[1]);		// hopefully to be shaded with cutout material
+	mesh_objects.emplace_back("models\\rover\\rover_body_flooring.obj", material_objects[2]);	// floor-textured rover bodyparts
+	mesh_objects.emplace_back("models\\rover\\rover_wings.obj", material_objects[3]);			// wing/solar panel parts
+	mesh_objects.emplace_back("models\\rover\\rover_static_hoses.obj", material_objects[4]);	// non-arm hoses
+	mesh_objects.emplace_back("models\\rover\\rover_arm1_hose.obj", material_objects[4]);		// hose connected to arm1
+	mesh_objects.emplace_back("models\\rover\\rover_arm2_hose.obj", material_objects[4]);		// hose connected to arm2
 
 	for (auto& el : mesh_objects)
 		if (!el.successfullyImported)
@@ -258,22 +258,27 @@ bool initModels() {
 
 bool initTextures()
 {
+	// [0] grimy green rover body shell textures
 	material_objects.emplace_back(
 		"models\\rover\\shell_body_diff.png",
 		"models\\rover\\crystalshell_norm.png",
 		"models\\rover\\crystalshell_ao.png");
+	// [1] rust textures
 	material_objects.emplace_back(
 		"models\\rover\\rust_comb.png",
 		"models\\rover\\rust_norm.png",
 		"models\\rover\\rust_spec.png");
+	// [2] walkable grating textures
 	material_objects.emplace_back(
 		"models\\rover\\grating_comb.png",
 		"models\\rover\\grating_norm.png",
 		"models\\rover\\grating_ao.png");
+	// [3] wing (solar panel) textures
 	material_objects.emplace_back(
 		"models\\rover\\wings_diff.png",
 		"models\\rover\\wings_norm.png",
 		"models\\rover\\wings_spec.png");
+	// [4] grimy red hose textures
 	material_objects.emplace_back(
 		"models\\rover\\hose_diff.png",
 		"models\\rover\\rust_spec.png",
