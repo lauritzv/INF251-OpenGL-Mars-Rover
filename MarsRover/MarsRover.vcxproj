@@ -132,6 +132,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="create_matrix.h" />
     <ClInclude Include="lodepng.h" />
+    <ClInclude Include="MaterialObject.h" />
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="MeshObject.h" />
     <ClInclude Include="model_obj.h" />
@@ -142,6 +143,7 @@
     <ClCompile Include="create_matrix.cpp" />
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MaterialObject.cpp" />
     <ClCompile Include="MeshObject.cpp" />
     <ClCompile Include="model_obj.cpp" />
   </ItemGroup>

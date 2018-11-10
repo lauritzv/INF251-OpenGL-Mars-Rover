@@ -1,8 +1,19 @@
 ﻿#include "MeshObject.h"
 #include <iostream>
 
-MeshObject::MeshObject(const char * modelpath, GLuint &tobjectdiff, GLuint &tobjectnorm, GLuint &tobjectspec) :
-	TObjectDiff(tobjectdiff), TObjectNorm(tobjectnorm), TObjectSpec(tobjectspec)
+//MeshObject::MeshObject(const char * modelpath, GLuint &tobjectdiff, GLuint &tobjectnorm, GLuint &tobjectspec) :
+//	TObjectDiff(tobjectdiff), TObjectNorm(tobjectnorm), TObjectSpec(tobjectspec)
+//{
+//
+//}
+
+MeshObject::MeshObject(const char * modelpath, MaterialObject& material_object) :
+	TObjectDiff(material_object.TObjectDiffuse0), TObjectNorm(material_object.TObjectNormal0), TObjectSpec(material_object.TObjectSpecular0)
+{
+	ImportModelAndSetVBOIBO(modelpath);
+}
+
+void MeshObject::ImportModelAndSetVBOIBO(const char * &modelpath)
 {
 	successfullyImported = Model.import(modelpath);
 	if (!successfullyImported)
@@ -15,17 +26,17 @@ MeshObject::MeshObject(const char * modelpath, GLuint &tobjectdiff, GLuint &tobj
 		glGenBuffers(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER,
-		             Model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
-		             Model.getVertexBuffer(),
-		             GL_STATIC_DRAW);
+			Model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
+			Model.getVertexBuffer(),
+			GL_STATIC_DRAW);
 
 		// IBO
 		glGenBuffers(1, &IBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		             3 * Model.getNumberOfTriangles() * sizeof(unsigned int),
-		             Model.getIndexBuffer(),
-		             GL_STATIC_DRAW);
+			3 * Model.getNumberOfTriangles() * sizeof(unsigned int),
+			Model.getIndexBuffer(),
+			GL_STATIC_DRAW);
 	}
 }
 

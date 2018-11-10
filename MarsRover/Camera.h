@@ -14,6 +14,7 @@ public:
 	float zNear, zFar;	///< depth of the near and far plane
 	float zoom;			///< an additional scaling parameter
 
+	Camera();
 	Matrix4f computeCameraTransform() const;
 	void init();
 };

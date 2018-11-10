@@ -1,5 +1,10 @@
 ﻿#include "Camera.h"
 
+Camera::Camera()  // NOLINT
+{
+	init();
+}
+
 Matrix4f Camera::computeCameraTransform() const
 {
 	// camera rotation
@@ -14,13 +19,13 @@ Matrix4f Camera::computeCameraTransform() const
 	);
 
 	// camera translation
-	Matrix4f camT = Matrix4f::createTranslation(-position);
+	const Matrix4f camT = Matrix4f::createTranslation(-position);
 
 	// perspective projection
-	Matrix4f prj = Matrix4f::createPerspectivePrj(fov, ar, zNear, zFar);
+	const Matrix4f prj = Matrix4f::createPerspectivePrj(fov, ar, zNear, zFar);
 
 	// scaling due to zooming
-	Matrix4f camZoom = Matrix4f::createScaling(zoom, zoom, 1.f);
+	const Matrix4f camZoom = Matrix4f::createScaling(zoom, zoom, 1.f);
 
 	// Final transformation. Notice the multiplication order
 	// First vertices are moved in camera space

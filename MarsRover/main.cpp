@@ -7,16 +7,15 @@
 #include <iostream>
 #include <cstdio>
 #include <string>
-
-#include "model_obj.h"
-#include "Vector3.h"
-#include "Matrix4.h"
-#include "lodepng.h"
-#include "create_matrix.h"
-#include "Camera.h"
 #include <algorithm>
 #include <ctime>
+
+#include "Vector3.h"
+#include "Matrix4.h"
+#include "create_matrix.h"
+#include "Camera.h"
 #include "MeshObject.h"
+#include "MaterialObject.h"
 
 using namespace std;
 
@@ -28,27 +27,23 @@ void mouse(int, int, int, int);
 void motion(int, int);
 
 // --- Other methods ------------------------------------------------------------------------------
-bool initBuffers();
-bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath);
+bool initModels();
 bool initShaders();
 bool initTextures();
-bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData);
-void drawObject(ModelOBJ &model, GLuint &vbo, GLuint &ibo, GLuint &tobjectdiff, GLuint &tobjectnorm, GLuint &tobjectspec);
 void setCommonUniforms();
 string readTextFile(const string&);
 float clamp(float, float, float);
 
 // --- Global variables ---------------------------------------------------------------------------
 
-vector<MeshObject> mesh_objects;
-
 // Shaders
 GLuint ShaderProgram0 = 0;	///< A shader program
 
-// Textures
-GLuint TObjectDiffuse0 = -1, TObjectNormal0 = -1, TObjectSpecular0 = -1;
-unsigned int TWidth = 0, THeight = 0;
-unsigned char *TextureDataDiffuse = nullptr, *TextureDataNorm = nullptr, *TextureDataSpec = nullptr;
+// Materials and textures
+vector<MaterialObject> material_objects;
+
+// Models
+vector<MeshObject> mesh_objects;
 
 // Vertex transformations
 Vector3f Translation;	///< Translation
@@ -134,11 +129,10 @@ int main(int argc, char **argv) {
 	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 
 	// Camera init
-	Cam.init();
 	Cam.ar = aspect_ratio;
 
 	// Shaders, Textures & buffers
-	if (!initShaders() || !initTextures() || !initBuffers())
+	if (!initShaders() || !initTextures() || !initModels())
 	{
 		cout << "Press Enter to exit..." << endl;
 		getchar();
@@ -245,11 +239,10 @@ void setCommonUniforms()
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 /// Initialize buffer objects
-bool initBuffers() {
+bool initModels() {
 
-	mesh_objects.emplace_back("models\\rover\\rover.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
-	mesh_objects.emplace_back("models\\capsule\\capsule.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
-	mesh_objects.emplace_back("models\\crystalpot\\crystalpot.obj",TObjectDiffuse0, TObjectNormal0, TObjectSpecular0);
+	mesh_objects.emplace_back("models\\rover\\rover.obj", material_objects[1]);
+	mesh_objects.emplace_back("models\\crystalpot\\crystalpot.obj", material_objects[0]);
 
 	for (auto& el : mesh_objects)
 	{
@@ -261,47 +254,20 @@ bool initBuffers() {
 
 bool initTextures()
 {
-	return initTexture("models\\crystalpot\\crystalshell_diff.png", ::TObjectDiffuse0, TextureDataDiffuse)
-		&& initTexture("models\\crystalpot\\crystalshell_norm.png", TObjectNormal0, TextureDataNorm)
-		&& initTexture("models\\crystalpot\\crystalshell_ao.png", TObjectSpecular0, TextureDataSpec);
-}
+	material_objects.emplace_back(
+		"models\\crystalpot\\crystalshell_diff.png",
+		"models\\crystalpot\\crystalshell_norm.png",
+		"models\\crystalpot\\crystalshell_ao.png");
+	material_objects.emplace_back(
+		"models\\rover\\rust_comb.png",
+		"models\\rover\\rust_norm.png",
+		"models\\rover\\rust_spec.png");
 
-bool initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
-{
-	unsigned int fail = lodepng_decode_file(
-		&TextureData, // the texture will be stored here
-		&TWidth, &THeight, // width and height of the texture will be stored here
-		pathfilename, // path and file name
-		LCT_RGBA, // format of the image
-		8); // bits for each color channel (bit depth / num. of channels)
-	if (fail != 0)
-		return false;
-
-	glGenTextures(1, &TObject); // Create the texture object
-	glBindTexture(GL_TEXTURE_2D, TObject); // Bind it as a 2D texture
-
-	// Set the texture data
-	glTexImage2D(GL_TEXTURE_2D, // type of texture
-		0,						// level of detail (used for mip-mapping only)
-		GL_RGBA,				// color components (how the data should be interpreted)
-		TWidth, THeight,		// texture width (must be a power of 2 on some systems)
-		0,						// border thickness (just set this to 0)
-		GL_RGBA,				// data format (how the data is supplied)
-		GL_UNSIGNED_BYTE,		// the basic type of the data array
-		TextureData);			// pointer to the data
-
-	// Set texture parameters for minification and magnification
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		// ... nice trilinear filtering ...
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	// ... which requires mipmaps. Generate them automatically.
-	glGenerateMipmap(GL_TEXTURE_2D);
-
+	for (auto& el : material_objects)
+	{
+		if (!el.successfullyImported)
+			return false;
+	}
 	return true;
 }
 
@@ -564,98 +530,5 @@ void motion(int x, int y) {
 	// Redraw the scene
 	glutPostRedisplay();
 }
-
-/*
-void drawObject(
-	ModelOBJ &model,
-	GLuint &vbo,
-	GLuint &ibo,
-	GLuint &tobjectdiff,
-	GLuint &tobjectnorm,
-	GLuint &tobjectspec)
-{
-	// Enable the vertex attributes and set their format
-	//glEnableVertexAttribArray(0); //pos
-	//glEnableVertexAttribArray(1); //uv-coord
-	//glEnableVertexAttribArray(2); //normals
-
-	// Bind the buffers
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-	// set the active texture units
-
-	// Bind our diffuse texture in Texture Unit 0
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, tobjectdiff);
-
-	// Bind our normal texture in Texture Unit 1
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, tobjectnorm);
-
-	//Bind our specular texture in Texture Unit 2
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, tobjectspec);
-
-	//position
-	glVertexAttribPointer(
-		0,											//location
-		3,											//datacount per
-		GL_FLOAT,									//datatype
-		GL_FALSE,									//normalize?
-		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
-		reinterpret_cast<const GLvoid*>(0));		//attrib offset
-
-	//texcoords
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(3 * sizeof(float))); //offset by pos
-
-	//normals
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(5 * sizeof(float)) //offset by pos+texcoord
-	);
-
-	// Draw the elements on the GPU
-	glDrawElements(
-		GL_TRIANGLES,
-		model.getNumberOfIndices(),
-		GL_UNSIGNED_INT,
-		0);
-
-	//glDisableVertexAttribArray(0); // pos
-	//glDisableVertexAttribArray(1); // uv
-	//glDisableVertexAttribArray(2); // normal
-}
-
-bool initModel(ModelOBJ &model, GLuint &vbo, GLuint &ibo, const char* modelpath)
-{
-	// Load the OBJ model
-	if (!model.import(modelpath)) {
-		cerr << "Error: cannot load model: " << modelpath << "." << endl;
-		return false;
-	}
-
-	// VBO
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER,
-		model.getNumberOfVertices() * sizeof(ModelOBJ::Vertex),
-		model.getVertexBuffer(),
-		GL_STATIC_DRAW);
-
-	// IBO
-	glGenBuffers(1, &ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		3 * model.getNumberOfTriangles() * sizeof(unsigned int),
-		model.getIndexBuffer(),
-		GL_STATIC_DRAW);
-
-	//cout << "initialized " << modelpath << " with ibo: " << std::to_string(ibo) << " and vbo: " << std::to_string(vbo) << "." << endl;
-
-	return true;
-}*/
 
 /* --- eof main.cpp --- */
