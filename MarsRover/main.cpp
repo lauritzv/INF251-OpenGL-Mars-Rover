@@ -205,8 +205,8 @@ void idle() {
 		RotationX += rotationSpeed * (now - Timer) / CLOCKS_PER_SEC;
 
 		// Movement along BSpline
-		node_number++;
-		if (node_number > curve->node_count() -1)
+		node_number++;							// TODO: framerate-independent movement along spline
+		if (node_number >= curve->node_count())
 			node_number -= curve->node_count();
 		const Vector trans = curve->node(node_number);
 		Translation = Vector3f(trans.x, trans.y, trans.z);
