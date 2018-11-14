@@ -22,6 +22,21 @@
     <ClCompile Include="MaterialObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="spline\Bezier.cpp">
+      <Filter>spline</Filter>
+    </ClCompile>
+    <ClCompile Include="spline\BSpline.cpp">
+      <Filter>spline</Filter>
+    </ClCompile>
+    <ClCompile Include="spline\CatmullRom.cpp">
+      <Filter>spline</Filter>
+    </ClCompile>
+    <ClCompile Include="spline\Curve.cpp">
+      <Filter>spline</Filter>
+    </ClCompile>
+    <ClCompile Include="spline\Vector.cpp">
+      <Filter>spline</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -48,6 +63,21 @@
     <ClInclude Include="MaterialObject.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="spline\Bezier.h">
+      <Filter>spline</Filter>
+    </ClInclude>
+    <ClInclude Include="spline\BSpline.h">
+      <Filter>spline</Filter>
+    </ClInclude>
+    <ClInclude Include="spline\CatmullRom.h">
+      <Filter>spline</Filter>
+    </ClInclude>
+    <ClInclude Include="spline\Curve.h">
+      <Filter>spline</Filter>
+    </ClInclude>
+    <ClInclude Include="spline\Vector.h">
+      <Filter>spline</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -58,6 +88,9 @@
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{cee892d5-353e-412a-96fb-0b973deb8b96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="spline">
+      <UniqueIdentifier>{09eb4e2a-9237-4c53-a42d-a6ed90115e0a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

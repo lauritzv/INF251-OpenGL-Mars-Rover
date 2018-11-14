@@ -17,6 +17,10 @@
 #include "MeshObject.h"
 #include "MaterialObject.h"
 
+#include "spline/CatmullRom.h";
+#include "spline/BSpline.h"
+#include "spline/Bezier.h"
+
 using namespace std;
 
 // --- OpenGL callbacks ---------------------------------------------------------------------------
@@ -30,6 +34,7 @@ void motion(int, int);
 bool initModels();
 bool initShaders();
 bool initTextures();
+void initSpline(bool loop);
 void setCommonUniforms();
 string readTextFile(const string&);
 float clamp(float, float, float);
@@ -65,6 +70,11 @@ clock_t Timer;
 bool animateScene = true;
 
 int viewMode = 0;
+
+// Curve stuff
+Curve* curve;
+float curve_pos = 0.f;
+int node_number;
 
 Camera Cam;
 create_matrix cm;
@@ -128,6 +138,11 @@ int main(int argc, char **argv) {
 	Scaling = 1.0f;
 	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 
+	// init spline loop
+	initSpline(true);
+
+	std::cout << "nodes: " << curve->node_count() << std::endl;
+	std::cout << "total length: " << curve->total_length() << std::endl;
 	// Camera init
 	Cam.ar = aspect_ratio;
 
@@ -188,8 +203,18 @@ void display() {
 void idle() {
 	clock_t now = clock(); //get the current “time”
 	if (animateScene) {
+
+		// Model rotation
 		const float rotationSpeed = 60.f;
 		RotationX += rotationSpeed * (now - Timer) / CLOCKS_PER_SEC;
+
+		// Movement along BSpline
+		node_number++;
+		if (node_number > curve->node_count() -1)
+			node_number -= curve->node_count();
+		const Vector trans = curve->node(node_number);
+		Translation = Vector3f(trans.x, trans.y, trans.z);
+
 		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 	}
 	Timer = now; //store the current “time”
@@ -233,6 +258,29 @@ void setCommonUniforms()
 
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
+void initSpline(bool loop)
+{
+	curve = new BSpline();
+	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
+	//main  control points
+	curve->add_way_point(Vector(-6, -2, -16));
+	curve->add_way_point(Vector(-6, -2, -8));
+	curve->add_way_point(Vector(6, -2, -8));
+	curve->add_way_point(Vector(6, -2, -16));
+	if (loop)
+	{
+	//first 3 points added for looping
+		for (auto i = 0; i < 3; i++)
+		{
+			curve->add_way_point(curve->_way_points[i]);
+		}
+	}
+
+	std::cout << "nodes: " << curve->node_count() << std::endl;
+	std::cout << "total length: " << curve->total_length() << std::endl;
+}
+
+
 /// Initialize buffer objects
 bool initModels() {
 

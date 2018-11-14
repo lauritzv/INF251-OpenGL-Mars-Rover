@@ -136,6 +136,11 @@
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="MeshObject.h" />
     <ClInclude Include="model_obj.h" />
+    <ClInclude Include="spline\Bezier.h" />
+    <ClInclude Include="spline\BSpline.h" />
+    <ClInclude Include="spline\CatmullRom.h" />
+    <ClInclude Include="spline\Curve.h" />
+    <ClInclude Include="spline\Vector.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +151,11 @@
     <ClCompile Include="MaterialObject.cpp" />
     <ClCompile Include="MeshObject.cpp" />
     <ClCompile Include="model_obj.cpp" />
+    <ClCompile Include="spline\Bezier.cpp" />
+    <ClCompile Include="spline\BSpline.cpp" />
+    <ClCompile Include="spline\CatmullRom.cpp" />
+    <ClCompile Include="spline\Curve.cpp" />
+    <ClCompile Include="spline\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\fshader.glsl" />
