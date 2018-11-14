@@ -1,15 +1,8 @@
 #include "BSpline.h"
-#include <iostream>
 
-BSpline::BSpline()
-: Curve()
-{
+BSpline::BSpline(): Curve() {}
 
-}
-
-BSpline::~BSpline()
-{
-}
+BSpline::~BSpline(){}
 
 void BSpline::_on_way_point_added()
 {

@@ -17,9 +17,7 @@
 #include "MeshObject.h"
 #include "MaterialObject.h"
 
-#include "spline/CatmullRom.h";
 #include "spline/BSpline.h"
-#include "spline/Bezier.h"
 
 using namespace std;
 
@@ -141,8 +139,6 @@ int main(int argc, char **argv) {
 	// init spline loop
 	initSpline(true);
 
-	std::cout << "nodes: " << curve->node_count() << std::endl;
-	std::cout << "total length: " << curve->total_length() << std::endl;
 	// Camera init
 	Cam.ar = aspect_ratio;
 
