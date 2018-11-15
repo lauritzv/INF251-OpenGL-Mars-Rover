@@ -1,12 +1,6 @@
 ﻿#include "MeshObject.h"
 #include <iostream>
 
-//MeshObject::MeshObject(const char * modelpath, GLuint &tobjectdiff, GLuint &tobjectnorm, GLuint &tobjectspec) :
-//	TObjectDiff(tobjectdiff), TObjectNorm(tobjectnorm), TObjectSpec(tobjectspec)
-//{
-//
-//}
-
 MeshObject::MeshObject(const char * modelpath, MaterialObject& material_object) :
 	TObjectDiff(material_object.TObjectDiffuse0), TObjectNorm(material_object.TObjectNormal0), TObjectSpec(material_object.TObjectSpecular0)
 {

@@ -66,6 +66,7 @@ bool wireframe = false;
 bool orthographic = false;
 clock_t Timer;
 bool animateScene = true;
+bool animateAlongPath = true;
 
 int viewMode = 0;
 
@@ -205,12 +206,14 @@ void idle() {
 		RotationX += rotationSpeed * (now - Timer) / CLOCKS_PER_SEC;
 
 		// Movement along BSpline
-		node_number++;							// TODO: framerate-independent movement along spline
-		if (node_number >= curve->node_count())
-			node_number -= curve->node_count();
-		const Vector trans = curve->node(node_number);
-		Translation = Vector3f(trans.x, trans.y, trans.z);
-
+		if (animateAlongPath)
+		{
+			node_number++;							// TODO: framerate-independent movement along spline
+			if (node_number >= curve->node_count())
+				node_number -= curve->node_count();
+			const Vector trans = curve->node(node_number);
+			Translation = Vector3f(trans.x, trans.y, trans.z);			
+		}
 		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 	}
 	Timer = now; //store the current “time”
@@ -498,6 +501,9 @@ void keyboard(unsigned char key, int x, int y) {
 		break;
 	case 't':
 		animateScene = !animateScene;
+		break;
+	case 'y':
+		animateAlongPath = !animateAlongPath;
 		break;
 		// --- utilities ---
 	case 'p': // toggle wireframe mode
