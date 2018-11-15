@@ -38,6 +38,7 @@ protected:
 public:
 	void increment_steps(int steps) { _steps+=steps; }
 	void set_steps(int steps) { _steps = steps; }
+	virtual Vector getInterpolatedPosition(double u, int const node0index) = 0;
 };
 
 #endif

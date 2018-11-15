@@ -9,6 +9,7 @@
 #include <string>
 #include <algorithm>
 #include <ctime>
+#include <chrono>
 
 #include "Vector3.h"
 #include "Matrix4.h"
@@ -64,16 +65,20 @@ int MouseButton;		///< The last mouse button pressed or released
 // Toggled Mode
 bool wireframe = false;
 bool orthographic = false;
-clock_t Timer;
-bool animateScene = true;
-bool animateAlongPath = true;
+
 
 int viewMode = 0;
 
+// Animation:
+bool animateScene = true;
+bool animateAlongPath = true;
+std::chrono::high_resolution_clock::time_point previousFrameTime;
+
 // Curve stuff
 Curve* curve;
-float curve_pos = 0.f;
-int node_number;
+double position_along_path = 0.;
+int node_number = 0;
+Vector3f PositionAlongPath(const double &delta_time, const double &movespeed);
 
 Camera Cam;
 create_matrix cm;
@@ -154,7 +159,10 @@ int main(int argc, char **argv) {
 	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
 
 	//Start timer
-	Timer = clock();
+	//Timer = clock();
+
+	//Record current time
+	previousFrameTime = std::chrono::high_resolution_clock::now();
 
 	// Start the main event loop
 	glutMainLoop();
@@ -197,26 +205,26 @@ void display() {
 }
 
 /// Called at regular intervals (can be used for animations)
-void idle() {
-	clock_t now = clock(); //get the current “time”
+void idle() 
+{
+	// Record current time and elapsed time since last frame as double with higher precision
+	const auto time_now = std::chrono::high_resolution_clock::now();
+	const auto delta_time = (time_now - previousFrameTime).count() * .000001;
+
 	if (animateScene) {
 
 		// Model rotation
-		const float rotationSpeed = 60.f;
-		RotationX += rotationSpeed * (now - Timer) / CLOCKS_PER_SEC;
-
+		const double rotationSpeed = 0.1;
+		RotationX += rotationSpeed * delta_time;
+		
 		// Movement along BSpline
 		if (animateAlongPath)
-		{
-			node_number++;							// TODO: framerate-independent movement along spline
-			if (node_number >= curve->node_count())
-				node_number -= curve->node_count();
-			const Vector trans = curve->node(node_number);
-			Translation = Vector3f(trans.x, trans.y, trans.z);			
-		}
+			Translation = PositionAlongPath(delta_time, .005);
+		
 		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 	}
-	Timer = now; //store the current “time”
+	previousFrameTime = time_now;
+
 	glutPostRedisplay();
 }
 
@@ -255,6 +263,26 @@ void setCommonUniforms()
 	glUniform1i(specSamplerULocation, 2);
 }
 
+Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
+{
+	const int nodeCount = curve->node_count();
+	const double deltaMovement = delta_time * movespeed;
+	position_along_path += deltaMovement;
+
+	if (position_along_path > curve->total_length())
+		position_along_path -= curve->total_length();
+
+	const auto position_rescaled = position_along_path / curve->total_length() * curve->node_count();
+	const auto node_number = static_cast<int>(position_rescaled);
+
+	// interpolate the position between the pre-interpolated positions:
+	const auto node_number_a_influence = position_rescaled - node_number;
+	const auto interpolatedPos = curve->getInterpolatedPosition(node_number_a_influence, node_number);
+
+	// from double Vector to Vector3f:
+	return Vector3f(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z);
+}
+
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 void initSpline(bool loop)
@@ -268,7 +296,7 @@ void initSpline(bool loop)
 	curve->add_way_point(Vector(6, -2, -16));
 	if (loop)
 	{
-	//first 3 points added for looping
+	//first 3 points added again for looping BSpline
 		for (auto i = 0; i < 3; i++)
 		{
 			curve->add_way_point(curve->_way_points[i]);

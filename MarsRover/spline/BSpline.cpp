@@ -17,7 +17,7 @@ void BSpline::_on_way_point_added()
 
 	for(int i=0; i<=_steps; i++)
 	{
-		double u=(double)i / (double)_steps;
+		double u=static_cast<double>(i) / static_cast<double>(_steps);
 
 		add_node(interpolate(u, _way_points[pt], _way_points[pt+1], _way_points[pt+2], _way_points[pt+3]));
 	}
@@ -32,5 +32,15 @@ Vector BSpline::interpolate(double u, const Vector& P0, const Vector& P1, const 
 	point+=(P0+4*P1+P2) / 6;
 
 	return point;
+}
+
+Vector BSpline::getInterpolatedPosition(double u, int const node0index)
+{
+	return interpolate(u,
+		node((node0index)     % node_count()),
+		node((node0index + 1) % node_count()),
+		node((node0index + 2) % node_count()),
+		node((node0index + 3) % node_count())
+	);
 }
 
