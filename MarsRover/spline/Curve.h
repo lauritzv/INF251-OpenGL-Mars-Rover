@@ -10,7 +10,7 @@ class Curve
 public:
 	Curve();
 	virtual ~Curve();
-
+	bool loop = true;
 	std::vector<Vector> _way_points;
 	void add_way_point(const Vector& point);
 	void clear();

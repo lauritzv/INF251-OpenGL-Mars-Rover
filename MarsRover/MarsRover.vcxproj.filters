@@ -37,6 +37,9 @@
     <ClCompile Include="spline\Vector.cpp">
       <Filter>spline</Filter>
     </ClCompile>
+    <ClCompile Include="MathExtra.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -77,6 +80,9 @@
     </ClInclude>
     <ClInclude Include="spline\Vector.h">
       <Filter>spline</Filter>
+    </ClInclude>
+    <ClInclude Include="MathExtra.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

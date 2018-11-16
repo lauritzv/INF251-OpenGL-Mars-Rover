@@ -36,7 +36,6 @@ bool initTextures();
 void initSpline(bool loop);
 void setCommonUniforms();
 string readTextFile(const string&);
-float clamp(float, float, float);
 
 // --- Global variables ---------------------------------------------------------------------------
 
@@ -296,7 +295,8 @@ void initSpline(bool loop)
 	curve->add_way_point(Vector(6, -2, -16));
 	if (loop)
 	{
-	//first 3 points added again for looping BSpline
+		curve->loop = true;
+		//first 3 points added again for looping BSpline
 		for (auto i = 0; i < 3; i++)
 		{
 			curve->add_way_point(curve->_way_points[i]);
@@ -487,16 +487,6 @@ string readTextFile(const string& pathAndFileName) {
 
 	return text;
 } /* readTextFile() */
-
-///clamp that float
-float clamp(const float in, const float min, const float max)
-{
-	float out;
-	if (in < min) out = min;
-	else if (in > max) out = max;
-	else out = in;
-	return out;
-}
 
 void keyboard(unsigned char key, int x, int y) {
 	Vector3f right;

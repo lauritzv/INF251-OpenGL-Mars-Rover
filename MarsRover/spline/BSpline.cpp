@@ -36,6 +36,7 @@ Vector BSpline::interpolate(double u, const Vector& P0, const Vector& P1, const 
 
 Vector BSpline::getInterpolatedPosition(double u, int const node0index)
 {
+
 	return interpolate(u,
 		node((node0index)     % node_count()),
 		node((node0index + 1) % node_count()),
