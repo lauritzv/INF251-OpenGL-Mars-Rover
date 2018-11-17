@@ -136,6 +136,8 @@
     <ClInclude Include="MathExtra.h" />
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="MeshObject.h" />
+    <ClInclude Include="MeshObjectDiffNormalSpec.h" />
+    <ClInclude Include="MeshObjectUnlitDiffuse.h" />
     <ClInclude Include="model_obj.h" />
     <ClInclude Include="spline\Bezier.h" />
     <ClInclude Include="spline\BSpline.h" />
@@ -150,8 +152,9 @@
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MaterialObject.cpp" />
-    <ClCompile Include="MathExtra.cpp" />
     <ClCompile Include="MeshObject.cpp" />
+    <ClCompile Include="MeshObjectDiffNormalSpec.cpp" />
+    <ClCompile Include="MeshObjectUnlitDiffuse.cpp" />
     <ClCompile Include="model_obj.cpp" />
     <ClCompile Include="spline\Bezier.cpp" />
     <ClCompile Include="spline\BSpline.cpp" />

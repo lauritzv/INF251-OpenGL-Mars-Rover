@@ -3,11 +3,11 @@
 class MathExtra
 {
 public:
-	MathExtra() = default;
-	~MathExtra() = default;
+	//MathExtra() = default;
+	//~MathExtra() = default;
 
 	template <class U>
-	U clamp(const U& in, const U& min, const U& max)
+	static U clamp(const U& in, const U& min, const U& max)
 	{
 		float out;
 		if (in < min) out = min;

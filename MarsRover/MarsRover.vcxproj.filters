@@ -37,9 +37,8 @@
     <ClCompile Include="spline\Vector.cpp">
       <Filter>spline</Filter>
     </ClCompile>
-    <ClCompile Include="MathExtra.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="MeshObjectUnlitDiffuse.cpp" />
+    <ClCompile Include="MeshObjectDiffNormalSpec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -84,6 +83,8 @@
     <ClInclude Include="MathExtra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MeshObjectUnlitDiffuse.h" />
+    <ClInclude Include="MeshObjectDiffNormalSpec.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">

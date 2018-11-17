@@ -15,10 +15,10 @@
 #include "Matrix4.h"
 #include "create_matrix.h"
 #include "Camera.h"
-#include "MeshObject.h"
 #include "MaterialObject.h"
 
 #include "spline/BSpline.h"
+#include "MeshObjectDiffNormalSpec.h"
 
 using namespace std;
 
@@ -34,7 +34,7 @@ bool initModels();
 bool initShaders();
 bool initTextures();
 void initSpline(bool loop);
-void setCommonUniforms();
+void setCommonUniforms(GLuint &shader_program);
 string readTextFile(const string&);
 
 // --- Global variables ---------------------------------------------------------------------------
@@ -46,7 +46,8 @@ GLuint ShaderProgram0 = 0;	///< A shader program
 vector<MaterialObject> material_objects;
 
 // Models
-vector<MeshObject> mesh_objects;
+vector<unique_ptr<MeshObject>> mesh_objects_shader0;
+vector<unique_ptr<MeshObject>> mesh_objects_shader1;
 
 // Vertex transformations
 Vector3f Translation;	///< Translation
@@ -71,7 +72,7 @@ int viewMode = 0;
 // Animation:
 bool animateScene = true;
 bool animateAlongPath = true;
-std::chrono::high_resolution_clock::time_point previousFrameTime;
+chrono::high_resolution_clock::time_point previousFrameTime;
 
 // Curve stuff
 Curve* curve;
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
 	glutMotionFunc(motion);
 
 	// Initialize glew (must be done after glut is initialized!)
-	GLenum res = glewInit();
+	const GLenum res = glewInit();
 	if (res != GLEW_OK) {
 		cerr << "Error initializing glew: \n"
 			<< reinterpret_cast<const char*>(glewGetErrorString(res)) << endl;
@@ -161,7 +162,7 @@ int main(int argc, char **argv) {
 	//Timer = clock();
 
 	//Record current time
-	previousFrameTime = std::chrono::high_resolution_clock::now();
+	previousFrameTime = chrono::high_resolution_clock::now();
 
 	// Start the main event loop
 	glutMainLoop();
@@ -180,7 +181,7 @@ void display() {
 	assert(ShaderProgram0 != 0);
 	glUseProgram(ShaderProgram0);
 
-	setCommonUniforms();
+	setCommonUniforms(ShaderProgram0);
 
 	// Enable the vertex attributes and set their format
 	glEnableVertexAttribArray(0); //pos
@@ -188,8 +189,8 @@ void display() {
 	glEnableVertexAttribArray(2); //normals
 
 	//draw objects:
-	for (auto& el : mesh_objects)
-		el.DrawObject();
+	for (auto& el : mesh_objects_shader0)
+		el->DrawObject();
 
 	//cleanup VAOs
 	glDisableVertexAttribArray(0); // pos
@@ -203,11 +204,11 @@ void display() {
 	glutSwapBuffers();
 }
 
-/// Called at regular intervals (can be used for animations)
-void idle() 
+/// Called at regular intervals (can be used for animations)      (note: actually pretty irregular intervals)
+void idle()
 {
 	// Record current time and elapsed time since last frame as double with higher precision
-	const auto time_now = std::chrono::high_resolution_clock::now();
+	const auto time_now = chrono::high_resolution_clock::now();
 	const auto delta_time = (time_now - previousFrameTime).count() * .000001;
 
 	if (animateScene) {
@@ -215,11 +216,11 @@ void idle()
 		// Model rotation
 		const double rotationSpeed = 0.1;
 		RotationX += rotationSpeed * delta_time;
-		
+
 		// Movement along BSpline
 		if (animateAlongPath)
 			Translation = PositionAlongPath(delta_time, .005);
-		
+
 		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 	}
 	previousFrameTime = time_now;
@@ -227,39 +228,43 @@ void idle()
 	glutPostRedisplay();
 }
 
-void setCommonUniforms()
+void setCommonUniforms(GLuint &shader_program)
 {
 	// Set transformations
-	const GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
+	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");
 	assert(trULocation != -1);
 	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
 
 	// Set projection
-	const GLint prULocation = glGetUniformLocation(ShaderProgram0, "projection");
+	const GLint prULocation = glGetUniformLocation(shader_program, "projection");
 	assert(prULocation != -1);
 	glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
 
-	// Set lightPositionMatrix
-	const GLint lpULocation = glGetUniformLocation(ShaderProgram0, "lightPositionMat");
-	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
+	if (shader_program == ShaderProgram0) // The Phong-Normal shaded material:
+	{
+		// Set lightPositionMatrix
+		const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
+		glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
-	// Set normalMatrix
-	Matrix4f normalMatrix = transformation.getInverse().getTransposed();
-	const GLint nmaULocation = glGetUniformLocation(ShaderProgram0, "normal_matrix");
-	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
-																	// Made the lightsource rotate with the model!
-	const GLint vmULocation = glGetUniformLocation(ShaderProgram0, "viewMode");
-	assert(vmULocation != -1);
-	glUniform1i(vmULocation, viewMode);
+		// Set normalMatrix
+		Matrix4f normalMatrix = transformation.getInverse().getTransposed();
+		const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
+		glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
+																		// Made the lightsource rotate with the model!
+		const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
+		assert(vmULocation != -1);
+		glUniform1i(vmULocation, viewMode);
 
-	// tell the shader which T.U. to use
-	GLint const diffSamplerULocation = glGetUniformLocation(ShaderProgram0, "diffSampler");
-	glUniform1i(diffSamplerULocation, 0);
-	GLint const normSamplerULocation = glGetUniformLocation(ShaderProgram0, "normSampler");
-	glUniform1i(normSamplerULocation, 1);
-	GLint const specSamplerULocation = glGetUniformLocation(ShaderProgram0, "specSampler");
-	glUniform1i(specSamplerULocation, 2);
+		// tell the shader which T.U. to use
+		GLint const normSamplerULocation = glGetUniformLocation(shader_program, "normSampler");
+		glUniform1i(normSamplerULocation, 1);
+		GLint const specSamplerULocation = glGetUniformLocation(shader_program, "specSampler");
+		glUniform1i(specSamplerULocation, 2);
+	}
+		//Common texture T.U. properties:
+		GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
+		glUniform1i(diffSamplerULocation, 0);
 }
 
 Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
@@ -303,30 +308,30 @@ void initSpline(bool loop)
 		}
 	}
 
-	std::cout << "nodes: " << curve->node_count() << std::endl;
-	std::cout << "total length: " << curve->total_length() << std::endl;
+	cout << "nodes: " << curve->node_count() << endl;
+	cout << "total length: " << curve->total_length() << endl;
 }
 
 
 /// Initialize buffer objects
 bool initModels() {
 
-	mesh_objects.emplace_back("models\\rover\\rover_body_shell.obj", material_objects[0]);		// green shell-textured rover bodyparts
-	mesh_objects.emplace_back("models\\rover\\rover_static_metal.obj", material_objects[1]);	// non-arm metal parts
-	mesh_objects.emplace_back("models\\rover\\rover_temp_parts.obj", material_objects[1]);		// not yet correctly textured parts
-	mesh_objects.emplace_back("models\\rover\\rover_arm0.obj", material_objects[1]);			// lowest robotic arm joint
-	mesh_objects.emplace_back("models\\rover\\rover_arm1.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm2.obj", material_objects[1]);
-	mesh_objects.emplace_back("models\\rover\\rover_arm3.obj", material_objects[1]);			// outermost robotic arm joint
-	mesh_objects.emplace_back("models\\rover\\rover_gratings.obj", material_objects[1]);		// hopefully to be shaded with cutout material
-	mesh_objects.emplace_back("models\\rover\\rover_body_flooring.obj", material_objects[2]);	// floor-textured rover bodyparts
-	mesh_objects.emplace_back("models\\rover\\rover_wings.obj", material_objects[3]);			// wing/solar panel parts
-	mesh_objects.emplace_back("models\\rover\\rover_static_hoses.obj", material_objects[4]);	// non-arm hoses
-	mesh_objects.emplace_back("models\\rover\\rover_arm1_hose.obj", material_objects[4]);		// hose connected to arm1
-	mesh_objects.emplace_back("models\\rover\\rover_arm2_hose.obj", material_objects[4]);		// hose connected to arm2
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_shell.obj", material_objects[0]));		// green shell-textured rover bodyparts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));	// non-arm metal parts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[1]));		// not yet correctly textured parts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm0.obj", material_objects[1]));			// lowest robotic arm joint
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1.obj", material_objects[1]));
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2.obj", material_objects[1]));
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm3.obj", material_objects[1]));			// outermost robotic arm joint
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_gratings.obj", material_objects[1]));		// hopefully to be shaded with cutout material
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_flooring.obj", material_objects[2]));	// floor-textured rover bodyparts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_wings.obj", material_objects[3]));			// wing/solar panel parts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_hoses.obj", material_objects[4]));	// non-arm hoses
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1_hose.obj", material_objects[4]));		// hose connected to arm1
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2_hose.obj", material_objects[4]));		// hose connected to arm2
 
-	for (auto& el : mesh_objects)
-		if (!el.successfullyImported)
+	for (auto& el : mesh_objects_shader0)
+		if (!el->successfullyImported)
 			return false;
 	return true;
 }

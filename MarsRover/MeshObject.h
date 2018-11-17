@@ -6,14 +6,17 @@
 class MeshObject
 {
 public:
+	//virtual ~MeshObject() = default;
+	//MeshObject();
+	//virtual ~MeshObject() = 0;
 	bool successfullyImported = true;
-	MeshObject(const char* modelpath, MaterialObject& material_object);
-	void DrawObject() const;
+	virtual void DrawObject() const = 0;
+
 private:
+
+protected:
+	MeshObject(const char*& modelpath);
 	void ImportModelAndSetVBOIBO(const char * &modelpath);
-	GLuint &TObjectDiff;
-	GLuint &TObjectNorm;
-	GLuint &TObjectSpec;
 	ModelOBJ Model;		///< A 3D model
 	GLuint VBO = 0;		///< A vertex buffer object
 	GLuint IBO = 0;		///< An index buffer object
