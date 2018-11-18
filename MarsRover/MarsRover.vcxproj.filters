@@ -22,13 +22,7 @@
     <ClCompile Include="MaterialObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="spline\Bezier.cpp">
-      <Filter>spline</Filter>
-    </ClCompile>
     <ClCompile Include="spline\BSpline.cpp">
-      <Filter>spline</Filter>
-    </ClCompile>
-    <ClCompile Include="spline\CatmullRom.cpp">
       <Filter>spline</Filter>
     </ClCompile>
     <ClCompile Include="spline\Curve.cpp">
@@ -37,8 +31,12 @@
     <ClCompile Include="spline\Vector.cpp">
       <Filter>spline</Filter>
     </ClCompile>
-    <ClCompile Include="MeshObjectUnlitDiffuse.cpp" />
-    <ClCompile Include="MeshObjectDiffNormalSpec.cpp" />
+    <ClCompile Include="MeshObjectDiffNormalSpec.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshObjectUnlitDiffuse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -65,13 +63,7 @@
     <ClInclude Include="MaterialObject.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="spline\Bezier.h">
-      <Filter>spline</Filter>
-    </ClInclude>
     <ClInclude Include="spline\BSpline.h">
-      <Filter>spline</Filter>
-    </ClInclude>
-    <ClInclude Include="spline\CatmullRom.h">
       <Filter>spline</Filter>
     </ClInclude>
     <ClInclude Include="spline\Curve.h">
@@ -83,8 +75,12 @@
     <ClInclude Include="MathExtra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MeshObjectUnlitDiffuse.h" />
-    <ClInclude Include="MeshObjectDiffNormalSpec.h" />
+    <ClInclude Include="MeshObjectDiffNormalSpec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshObjectUnlitDiffuse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -123,6 +119,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\shader.ass3attempt2.v.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.unlitdiffuse.f.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.unlitdiffuse.v.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

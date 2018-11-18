@@ -139,9 +139,7 @@
     <ClInclude Include="MeshObjectDiffNormalSpec.h" />
     <ClInclude Include="MeshObjectUnlitDiffuse.h" />
     <ClInclude Include="model_obj.h" />
-    <ClInclude Include="spline\Bezier.h" />
     <ClInclude Include="spline\BSpline.h" />
-    <ClInclude Include="spline\CatmullRom.h" />
     <ClInclude Include="spline\Curve.h" />
     <ClInclude Include="spline\Vector.h" />
     <ClInclude Include="Vector3.h" />
@@ -156,9 +154,7 @@
     <ClCompile Include="MeshObjectDiffNormalSpec.cpp" />
     <ClCompile Include="MeshObjectUnlitDiffuse.cpp" />
     <ClCompile Include="model_obj.cpp" />
-    <ClCompile Include="spline\Bezier.cpp" />
     <ClCompile Include="spline\BSpline.cpp" />
-    <ClCompile Include="spline\CatmullRom.cpp" />
     <ClCompile Include="spline\Curve.cpp" />
     <ClCompile Include="spline\Vector.cpp" />
   </ItemGroup>
@@ -170,6 +166,8 @@
     <None Include="shaders\shader.ass3attempt2.v.glsl" />
     <None Include="shaders\shader.tutor6.f.glsl" />
     <None Include="shaders\shader.tutor6.v.glsl" />
+    <None Include="shaders\shader.unlitdiffuse.f.glsl" />
+    <None Include="shaders\shader.unlitdiffuse.v.glsl" />
     <None Include="shaders\vshader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
