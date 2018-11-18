@@ -33,6 +33,7 @@ void motion(int, int);
 bool initModels();
 bool initShaders();
 bool initTextures();
+bool initShader(GLuint &shader_program, const string& vshaderpath, const string& fshaderpath);
 void initSpline(bool loop);
 void setCommonUniforms(GLuint &shader_program);
 string readTextFile(const string&);
@@ -40,7 +41,8 @@ string readTextFile(const string&);
 // --- Global variables ---------------------------------------------------------------------------
 
 // Shaders
-GLuint ShaderProgram0 = 0;	///< A shader program
+GLuint ShaderProgram0 = 0;	///< A shader program: Phong diff/norm/specmapped
+GLuint ShaderProgram1 = 0;	///< A shader program: Unlit diff
 
 // Materials and textures
 vector<MaterialObject> material_objects;
@@ -88,19 +90,19 @@ create_matrix cm;
 int main(int argc, char **argv) {
 
 	cout <<
-'\n' << "CONTROLS:"<<
-'\n' <<
-'\n' << "Left mouse rotates"<<
-'\n' << "Middle mouse changes fov"<<
-'\n' << "Right mouse moves camera"<<
-'\n' << "wasd, space and c: first-person movement"<<
-'\n' <<
-'\n' << "r: resets camera"<<
-'\n' << "p: toggle wireframe-mode"<<
-'\n' << "t: toggle model rotation"<<
-'\n' << "v: cycle between different fragment output modes"<<
-'\n' << "l: reload shaders"<<
-'\n' << "q: quit program" << endl;
+		'\n' << "CONTROLS:" <<
+		'\n' <<
+		'\n' << "Left mouse rotates" <<
+		'\n' << "Middle mouse changes fov" <<
+		'\n' << "Right mouse moves camera" <<
+		'\n' << "wasd, space and c: first-person movement" <<
+		'\n' <<
+		'\n' << "r: resets camera" <<
+		'\n' << "p: toggle wireframe-mode" <<
+		'\n' << "t: toggle model rotation" <<
+		'\n' << "v: cycle between different fragment output modes" <<
+		'\n' << "l: reload shaders" <<
+		'\n' << "q: quit program" << endl;
 
 
 	// Initialize glut and create a simple window
@@ -177,20 +179,38 @@ void display() {
 	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Enable the shader program
-	assert(ShaderProgram0 != 0);
-	glUseProgram(ShaderProgram0);
+	{
+		// Enable the diff/normal/spec shader program
+		assert(ShaderProgram0 != 0);
+		glUseProgram(ShaderProgram0);
 
-	setCommonUniforms(ShaderProgram0);
+		setCommonUniforms(ShaderProgram0);
 
-	// Enable the vertex attributes and set their format
-	glEnableVertexAttribArray(0); //pos
-	glEnableVertexAttribArray(1); //uv-coord
-	glEnableVertexAttribArray(2); //normals
+		// Enable the vertex attributes and set their format
+		glEnableVertexAttribArray(0); //pos
+		glEnableVertexAttribArray(1); //uv-coord
+		glEnableVertexAttribArray(2); //normals
 
-	//draw objects:
-	for (auto& el : mesh_objects_shader0)
-		el->DrawObject();
+		//draw objects:
+		for (auto& el : mesh_objects_shader0)
+			el->DrawObject();
+	}
+	{
+		// Enable the unlit shader program
+		assert(ShaderProgram1 != 0);
+		glUseProgram(ShaderProgram1);
+
+		setCommonUniforms(ShaderProgram1);
+
+		// Enable the vertex attributes and set their format
+		glEnableVertexAttribArray(0); //pos
+		glEnableVertexAttribArray(1); //uv-coord
+		glEnableVertexAttribArray(2); //normals
+
+		//draw objects:
+		for (auto& el : mesh_objects_shader1)
+			el->DrawObject();
+	}
 
 	//cleanup VAOs
 	glDisableVertexAttribArray(0); // pos
@@ -262,9 +282,11 @@ void setCommonUniforms(GLuint &shader_program)
 		GLint const specSamplerULocation = glGetUniformLocation(shader_program, "specSampler");
 		glUniform1i(specSamplerULocation, 2);
 	}
-		//Common texture T.U. properties:
+	if (shader_program == ShaderProgram0 || shader_program == ShaderProgram1)
+	{
 		GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
 		glUniform1i(diffSamplerULocation, 0);
+	}
 }
 
 Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
@@ -318,7 +340,6 @@ bool initModels() {
 
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_shell.obj", material_objects[0]));		// green shell-textured rover bodyparts
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));	// non-arm metal parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[1]));		// not yet correctly textured parts
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm0.obj", material_objects[1]));			// lowest robotic arm joint
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1.obj", material_objects[1]));
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2.obj", material_objects[1]));
@@ -330,10 +351,29 @@ bool initModels() {
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1_hose.obj", material_objects[4]));		// hose connected to arm1
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2_hose.obj", material_objects[4]));		// hose connected to arm2
 
+	// unlit objects:
+	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[5]));		// not yet correctly textured parts
+
+	// double-check if all objects has been sucessfully imported
+	bool success = true;
 	for (auto& el : mesh_objects_shader0)
 		if (!el->successfullyImported)
-			return false;
-	return true;
+		{
+			success = false;
+			break;
+		}
+	if (success)
+	{
+		for (auto& el : mesh_objects_shader1)
+		{
+			if (!el->successfullyImported)
+			{
+				success = false;
+				break;
+			}
+		}
+	}
+	return success;
 }
 
 bool initTextures()
@@ -363,7 +403,8 @@ bool initTextures()
 		"models\\rover\\hose_diff.png",
 		"models\\rover\\rust_spec.png",
 		"models\\rover\\rust_spec.png");
-
+	// [5] unlit texture
+	material_objects.emplace_back("models\\rover\\shell_body_diff.png");
 
 
 	for (auto& el : material_objects)
@@ -372,13 +413,19 @@ bool initTextures()
 	return true;
 }
 
+bool initShaders()
+{
+	return initShader(ShaderProgram0, "shaders\\vshader.glsl", "shaders\\fshader.glsl") &&
+		initShader(ShaderProgram1, "shaders\\shader.unlitdiffuse.v.glsl", "shaders\\shader.unlitdiffuse.f.glsl");
+}
+
 /// Initialize shaders. Return false if initialization fail
-bool initShaders() {
+bool initShader(GLuint &shader_program, const string& vshaderpath, const string& fshaderpath) {
 	// Create the shader program and check for errors
-	if (ShaderProgram0 != 0)
-		glDeleteProgram(ShaderProgram0);
-	ShaderProgram0 = glCreateProgram();
-	if (ShaderProgram0 == 0) {
+	if (shader_program != 0)
+		glDeleteProgram(shader_program);
+	shader_program = glCreateProgram();
+	if (shader_program == 0) {
 		cerr << "Error: cannot create shader program." << endl;
 		return false;
 	}
@@ -392,7 +439,7 @@ bool initShaders() {
 	}
 
 	// Read and set the source code for the vertex shader
-	string text = readTextFile("shaders\\vshader.glsl");
+	string text = readTextFile(vshaderpath);
 	const char* code = text.c_str();
 	int length = static_cast<int>(text.length());
 	if (length == 0)
@@ -400,7 +447,7 @@ bool initShaders() {
 	glShaderSource(vertShader, 1, &code, &length);
 
 	// Read and set the source code for the fragment shader
-	string text2 = readTextFile("shaders\\fshader.glsl");
+	string text2 = readTextFile(fshaderpath);
 	const char *code2 = text2.c_str();
 	length = static_cast<int>(text2.length());
 	if (length == 0)
@@ -430,12 +477,12 @@ bool initShaders() {
 	}
 
 	// Attach the shader to the program and link it
-	glAttachShader(ShaderProgram0, vertShader);
-	glAttachShader(ShaderProgram0, fragShader);
-	glLinkProgram(ShaderProgram0);
+	glAttachShader(shader_program, vertShader);
+	glAttachShader(shader_program, fragShader);
+	glLinkProgram(shader_program);
 
 	// Check for linking error
-	glGetProgramiv(ShaderProgram0, GL_LINK_STATUS, &success);
+	glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
 	if (!success) {
 		glGetProgramInfoLog(ShaderProgram0, 1024, nullptr, errorLog);
 		cerr << "Error: cannot link shader program.\nError log:\n" << errorLog << endl;
@@ -444,12 +491,12 @@ bool initShaders() {
 	}
 
 	// Make sure that the shader program can run
-	glValidateProgram(ShaderProgram0);
+	glValidateProgram(shader_program);
 
 	// Check for validation error
-	glGetProgramiv(ShaderProgram0, GL_VALIDATE_STATUS, &success);
+	glGetProgramiv(shader_program, GL_VALIDATE_STATUS, &success);
 	if (!success) {
-		glGetProgramInfoLog(ShaderProgram0, 1024, nullptr, errorLog);
+		glGetProgramInfoLog(shader_program, 1024, nullptr, errorLog);
 		cerr << "Error: cannot validate shader program.\nError log:\n" << errorLog << endl;
 		getchar();
 		return false;

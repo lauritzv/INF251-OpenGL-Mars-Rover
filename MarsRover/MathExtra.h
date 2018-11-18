@@ -3,8 +3,6 @@
 class MathExtra
 {
 public:
-	//MathExtra() = default;
-	//~MathExtra() = default;
 
 	template <class U>
 	static U clamp(const U& in, const U& min, const U& max)

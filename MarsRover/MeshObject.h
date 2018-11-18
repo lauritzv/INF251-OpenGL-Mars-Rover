@@ -6,13 +6,9 @@
 class MeshObject
 {
 public:
-	//virtual ~MeshObject() = default;
-	//MeshObject();
-	//virtual ~MeshObject() = 0;
+	virtual ~MeshObject() = default;
 	bool successfullyImported = true;
 	virtual void DrawObject() const = 0;
-
-private:
 
 protected:
 	MeshObject(const char*& modelpath);

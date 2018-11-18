@@ -10,6 +10,12 @@ MaterialObject::MaterialObject(const char* pathfilenameDiff, const char* pathfil
 		initTexture(pathfilenameSpec, TObjectSpecular0,TextureDataSpec);
 }
 
+MaterialObject::MaterialObject(const char* pathfilenameDiff)
+{
+	successfullyImported =
+		initTexture(pathfilenameDiff, TObjectDiffuse0, TextureDataDiffuse);
+}
+
 bool MaterialObject::initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
 {
 	unsigned int fail = lodepng_decode_file(
@@ -37,11 +43,13 @@ bool MaterialObject::initTexture(const char* pathfilename, GLuint &TObject, unsi
 		GL_UNSIGNED_BYTE,		// the basic type of the data array
 		TextureData);			// pointer to the data
 
-	// Set texture parameters for minification and magnification
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		// ... nice trilinear filtering ...
+	// Set texture parameters for minification and magnification
+
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// trilinear filtering ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
