@@ -195,17 +195,13 @@ void display() {
 		for (auto& el : mesh_objects_shader0)
 			el->DrawObject();
 	}
+
 	{
 		// Enable the unlit shader program
 		assert(ShaderProgram1 != 0);
 		glUseProgram(ShaderProgram1);
 
 		setCommonUniforms(ShaderProgram1);
-
-		// Enable the vertex attributes and set their format
-		glEnableVertexAttribArray(0); //pos
-		glEnableVertexAttribArray(1); //uv-coord
-		glEnableVertexAttribArray(2); //normals
 
 		//draw objects:
 		for (auto& el : mesh_objects_shader1)
@@ -271,7 +267,7 @@ void setCommonUniforms(GLuint &shader_program)
 		Matrix4f normalMatrix = transformation.getInverse().getTransposed();
 		const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
 		glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
-																		// Made the lightsource rotate with the model!
+																		// "true" made the lightsource rotate with the model!
 		const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
 		assert(vmULocation != -1);
 		glUniform1i(vmULocation, viewMode);
@@ -406,7 +402,6 @@ bool initTextures()
 	// [5] unlit texture
 	material_objects.emplace_back("models\\rover\\shell_body_diff.png");
 
-
 	for (auto& el : material_objects)
 		if (!el.successfullyImported)
 			return false;
@@ -415,8 +410,9 @@ bool initTextures()
 
 bool initShaders()
 {
-	return initShader(ShaderProgram0, "shaders\\vshader.glsl", "shaders\\fshader.glsl") &&
-		initShader(ShaderProgram1, "shaders\\shader.unlitdiffuse.v.glsl", "shaders\\shader.unlitdiffuse.f.glsl");
+	return
+		initShader(ShaderProgram0, "shaders\\vshader.glsl", "shaders\\fshader.glsl") &&								// diff/norm/spec mapped
+		initShader(ShaderProgram1, "shaders\\shader.unlitdiffuse.v.glsl", "shaders\\shader.unlitdiffuse.f.glsl");	// unlit diffusemapped
 }
 
 /// Initialize shaders. Return false if initialization fail

@@ -9,9 +9,8 @@ layout (location = 2) in vec3 aNormal; // not used in this shader
 
 out vec2 fTexCoords;
 
-void main() {
-	
-	//Fragment's projected position
+void main() 
+{
 	fTexCoords = aTexCoords;
 	gl_Position = vec4(projection * transformation * vec4(aPos,1.0));
 }
