@@ -48,8 +48,8 @@ GLuint ShaderProgram1 = 0;	///< A shader program: Unlit diff
 vector<MaterialObject> material_objects;
 
 // Models
-vector<unique_ptr<MeshObject>> mesh_objects_shader0;
-vector<unique_ptr<MeshObject>> mesh_objects_shader1;
+vector<unique_ptr<MeshObject>> mesh_objects_shader0; /// Phong diff / norm / specmapped shaded objects
+vector<unique_ptr<MeshObject>> mesh_objects_shader1; /// Unlit diff shaded objects
 
 // Vertex transformations
 Vector3f Translation;	///< Translation
@@ -58,7 +58,7 @@ float RotationY;
 float Scaling;			///< Scaling
 Matrix4<float> projection;
 Matrix4<float> transformation;
-float aspect_ratio; // Set from initial WindowSize
+float aspect_ratio; /// Set from initial WindowSize
 
 // Mouse interactions
 int MouseX, MouseY;		///< The last position of the mouse
@@ -220,7 +220,7 @@ void display() {
 	glutSwapBuffers();
 }
 
-/// Called at regular intervals (can be used for animations)      (note: actually pretty irregular intervals)
+/// Called at regular intervals (can be used for animations)      (note: actually kind of irregular intervals...)
 void idle()
 {
 	// Record current time and elapsed time since last frame as double with higher precision
@@ -321,9 +321,7 @@ void initSpline(bool loop)
 		curve->loop = true;
 		//first 3 points added again for looping BSpline
 		for (auto i = 0; i < 3; i++)
-		{
 			curve->add_way_point(curve->_way_points[i]);
-		}
 	}
 
 	cout << "nodes: " << curve->node_count() << endl;
@@ -335,41 +333,30 @@ void initSpline(bool loop)
 bool initModels() {
 
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_shell.obj", material_objects[0]));		// green shell-textured rover bodyparts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));	// non-arm metal parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm0.obj", material_objects[1]));			// lowest robotic arm joint
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));		// non-arm metal parts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[1]));		// not yet correctly textured parts
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm0.obj", material_objects[1]));				// lowest robotic arm joint
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1.obj", material_objects[1]));
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2.obj", material_objects[1]));
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm3.obj", material_objects[1]));			// outermost robotic arm joint
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_gratings.obj", material_objects[1]));		// hopefully to be shaded with cutout material
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm3.obj", material_objects[1]));				// outermost robotic arm joint
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_gratings.obj", material_objects[1]));			// hopefully to be shaded with cutout material
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_flooring.obj", material_objects[2]));	// floor-textured rover bodyparts
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_wings.obj", material_objects[3]));			// wing/solar panel parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_hoses.obj", material_objects[4]));	// non-arm hoses
+	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_hoses.obj", material_objects[4]));		// non-arm hoses
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1_hose.obj", material_objects[4]));		// hose connected to arm1
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2_hose.obj", material_objects[4]));		// hose connected to arm2
 
 	// unlit objects:
-	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[5]));		// not yet correctly textured parts
 
 	// double-check if all objects has been sucessfully imported
-	bool success = true;
 	for (auto& el : mesh_objects_shader0)
 		if (!el->successfullyImported)
-		{
-			success = false;
-			break;
-		}
-	if (success)
-	{
-		for (auto& el : mesh_objects_shader1)
-		{
-			if (!el->successfullyImported)
-			{
-				success = false;
-				break;
-			}
-		}
-	}
-	return success;
+			return false;
+	for (auto& el : mesh_objects_shader1)
+		if (!el->successfullyImported)
+			return false;
+
+	return true;
 }
 
 bool initTextures()
