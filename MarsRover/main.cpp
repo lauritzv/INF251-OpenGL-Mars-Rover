@@ -19,6 +19,7 @@
 
 #include "spline/BSpline.h"
 #include "MeshObjectDiffNormalSpec.h"
+#include "MeshObjectUnlitDiffuse.h"
 
 using namespace std;
 
