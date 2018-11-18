@@ -267,7 +267,7 @@ void setCommonUniforms(GLuint &shader_program)
 		// Set normalMatrix
 		Matrix4f normalMatrix = transformation.getInverse().getTransposed();
 		const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
-		glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this bool caused a lot of headache!!!
+		glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
 																		// "true" made the lightsource rotate with the model!
 		const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
 		assert(vmULocation != -1);
@@ -333,6 +333,7 @@ void initSpline(bool loop)
 /// Initialize buffer objects
 bool initModels() {
 
+	// diff / norm / spec mapped objects:
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_shell.obj", material_objects[0]));		// green shell-textured rover bodyparts
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));		// non-arm metal parts
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[1]));		// not yet correctly textured parts
@@ -346,8 +347,13 @@ bool initModels() {
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_hoses.obj", material_objects[4]));		// non-arm hoses
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1_hose.obj", material_objects[4]));		// hose connected to arm1
 	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2_hose.obj", material_objects[4]));		// hose connected to arm2
+	//mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt.obj", material_objects[8]));	// terrain surface
 
 	// unlit objects:
+	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6]));
+	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\environment_sphere.obj", material_objects[7]));
+	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9]));
+	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\akvariemesh.obj", material_objects[10]));
 
 	// double-check if all objects has been sucessfully imported
 	for (auto& el : mesh_objects_shader0)
@@ -389,6 +395,21 @@ bool initTextures()
 		"models\\rover\\rust_spec.png");
 	// [5] unlit texture
 	material_objects.emplace_back("models\\rover\\shell_body_diff.png");
+	// [6] skull
+	material_objects.emplace_back("models\\aquarium\\skalle03_DiffM.png");
+	// [7] environment sphere
+	material_objects.emplace_back("models\\aquarium\\grad_pink.png");
+
+	//// [8] terrain surface
+	//material_objects.emplace_back(
+	//	"models\\aquarium\\tunneled_terrain02-DiffM.png",
+	//	"models\\aquarium\\tunneled_terrain02-NM.png",
+	//	"models\\aquarium\\tunneled_terrain02-DM.png");
+	//// [9] terrain sides
+	//material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png");
+	//// [10] environment sphere
+	//material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
+
 
 	for (auto& el : material_objects)
 		if (!el.successfullyImported)

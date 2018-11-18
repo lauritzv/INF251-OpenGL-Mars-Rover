@@ -44,6 +44,6 @@ void Camera::init()
 	fov = 50.f;
 	ar = 1.f; // will be correctly initialized in the "display()" method
 	zNear = 0.1f;
-	zFar = 100.f;
+	zFar = 1000.f;
 	zoom = 1.f;
 }
