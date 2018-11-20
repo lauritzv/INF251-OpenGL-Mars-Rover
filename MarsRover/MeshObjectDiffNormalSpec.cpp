@@ -1,4 +1,6 @@
 #include "MeshObjectDiffNormalSpec.h"
+#include <cassert>
+#include "Matrix4.h"
 
 MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, MaterialObject& material_object) :
 	MeshObject(modelpath),
@@ -12,8 +14,18 @@ MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, Mater
 MeshObjectDiffNormalSpec::~MeshObjectDiffNormalSpec()
 = default;
 
-void MeshObjectDiffNormalSpec::DrawObject() const
+void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, GLuint & shader_program) const
 {
+	// Set transformations
+	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");
+	assert(trULocation != -1);
+	glUniformMatrix4fv(trULocation, 1, false, transf.get());
+
+	Matrix4f normalMatrix = transf.getInverse().getTransposed();
+	const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
+	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
+																	// "true" made the lightsource rotate with the model!
+
 	// Bind the buffers
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);

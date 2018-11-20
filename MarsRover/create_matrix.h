@@ -8,5 +8,5 @@ public:
 	Matrix4<float> create_transformation_matrix(const Vector3<float>& Translation, const float& RotationX, const float& RotationY, const float& Scaling) const;
 
 	///Create projection matrix
-	Matrix4<float> create_projection(const bool& orthographic, const float& aspect_ratio) const;
+	//Matrix4<float> create_projection(const bool& orthographic, const float& aspect_ratio) const;
 };

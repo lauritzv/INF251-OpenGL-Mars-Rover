@@ -11,15 +11,16 @@
 #include <ctime>
 #include <chrono>
 
-#include "Vector3.h"
-#include "Matrix4.h"
+//#include "Vector3.h"
+//#include "Matrix4.h"
 #include "create_matrix.h"
 #include "Camera.h"
-#include "MaterialObject.h"
+//#include "MaterialObject.h"
 
 #include "spline/BSpline.h"
 #include "MeshObjectDiffNormalSpec.h"
 #include "MeshObjectUnlitDiffuse.h"
+#include "SceneNode.h"
 
 using namespace std;
 
@@ -73,8 +74,8 @@ bool orthographic = false;
 int viewMode = 0;
 
 // Animation:
-bool animateScene = true;
-bool animateAlongPath = true;
+bool animateScene = false;
+bool animateAlongPath = false;
 chrono::high_resolution_clock::time_point previousFrameTime;
 
 // Curve stuff
@@ -85,6 +86,14 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed);
 
 Camera Cam;
 create_matrix cm;
+
+vector<shared_ptr<SceneNode>> scene_nodes;
+const auto root_node = make_shared<SceneNode>(nullptr);
+shared_ptr<SceneNode> rover_body_node;
+shared_ptr<SceneNode> rover_arm0;
+shared_ptr<SceneNode> rover_arm1;
+shared_ptr<SceneNode> rover_arm2;
+shared_ptr<SceneNode> rover_arm3;
 
 // --- main() -------------------------------------------------------------------------------------
 /// The entry point of the application
@@ -187,27 +196,32 @@ void display() {
 
 		setCommonUniforms(ShaderProgram0);
 
+
+
 		// Enable the vertex attributes and set their format
 		glEnableVertexAttribArray(0); //pos
 		glEnableVertexAttribArray(1); //uv-coord
 		glEnableVertexAttribArray(2); //normals
 
 		//draw objects:
-		for (auto& el : mesh_objects_shader0)
-			el->DrawObject();
+		//for (auto& el : mesh_objects_shader0)
+		//	el->DrawObject();
 	}
 
-	{
-		// Enable the unlit shader program
-		assert(ShaderProgram1 != 0);
-		glUseProgram(ShaderProgram1);
 
-		setCommonUniforms(ShaderProgram1);
+	root_node->Draw(ShaderProgram0);
 
-		//draw objects:
-		for (auto& el : mesh_objects_shader1)
-			el->DrawObject();
-	}
+	//{
+	//	// Enable the unlit shader program
+	//	assert(ShaderProgram1 != 0);
+	//	glUseProgram(ShaderProgram1);
+
+	//	setCommonUniforms(ShaderProgram1);
+
+	//	//draw objects:
+	//	for (auto& el : mesh_objects_shader1)
+	//		el->DrawObject();
+	//}
 
 	//cleanup VAOs
 	glDisableVertexAttribArray(0); // pos
@@ -247,16 +261,18 @@ void idle()
 
 void setCommonUniforms(GLuint &shader_program)
 {
-	// Set transformations
-	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");
-	assert(trULocation != -1);
-	glUniformMatrix4fv(trULocation, 1, false, transformation.get());
+	//// Set transformations
+	//const GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
+	//assert(trULocation != -1);
+	//glUniformMatrix4fv(trULocation, 1, false, transf.get());
 
 	// Set projection
 	const GLint prULocation = glGetUniformLocation(shader_program, "projection");
 	assert(prULocation != -1);
 	glUniformMatrix4fv(prULocation, 1, false, projection.get());
 	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
+	//cout << std::to_string(GL_CURRENT_PROGRAM) << endl;
+	//cout << to_string(shader_program);
 
 	if (shader_program == ShaderProgram0) // The Phong-Normal shaded material:
 	{
@@ -265,10 +281,10 @@ void setCommonUniforms(GLuint &shader_program)
 		glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
 		// Set normalMatrix
-		Matrix4f normalMatrix = transformation.getInverse().getTransposed();
-		const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
-		glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
-																		// "true" made the lightsource rotate with the model!
+		//Matrix4f normalMatrix = transf.getInverse().getTransposed();
+		//const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
+		//glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
+		//																// "true" made the lightsource rotate with the model!
 		const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
 		assert(vmULocation != -1);
 		glUniform1i(vmULocation, viewMode);
@@ -284,6 +300,7 @@ void setCommonUniforms(GLuint &shader_program)
 		GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
 		glUniform1i(diffSamplerULocation, 0);
 	}
+
 }
 
 Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
@@ -329,29 +346,58 @@ void initSpline(bool loop)
 	cout << "total length: " << curve->total_length() << endl;
 }
 
+shared_ptr<SceneNode> CreateNode(
+	const char * model_path,
+	MaterialObject &material,
+	const Matrix4f &transf_local,
+	const GLuint &shader_program,
+	const shared_ptr<SceneNode> &parent)
+{
+	unique_ptr<MeshObject> new_object;
 
+	if (shader_program == ShaderProgram0)
+		new_object = make_unique<MeshObjectDiffNormalSpec>(model_path, material);
+	else if (shader_program == ShaderProgram1)
+		new_object = make_unique<MeshObjectUnlitDiffuse>(model_path, material);
+	else new_object = nullptr;
+
+	const auto new_node = make_shared<SceneNode>(std::move(new_object));
+	new_node->SetTransform(transf_local);
+	parent->AddChild(new_node);
+	scene_nodes.push_back(new_node);
+	return new_node;
+}
 /// Initialize buffer objects
 bool initModels() {
+	const Matrix4f identitymatrix;
+
+	root_node->SetTransform(identitymatrix);
+	root_node->Update();
+	scene_nodes.push_back(root_node);
 
 	// diff / norm / spec mapped objects:
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_shell.obj", material_objects[0]));		// green shell-textured rover bodyparts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_metal.obj", material_objects[1]));		// non-arm metal parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_temp_parts.obj", material_objects[1]));		// not yet correctly textured parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm0.obj", material_objects[1]));				// lowest robotic arm joint
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1.obj", material_objects[1]));
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2.obj", material_objects[1]));
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm3.obj", material_objects[1]));				// outermost robotic arm joint
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_gratings.obj", material_objects[1]));			// hopefully to be shaded with cutout material
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_body_flooring.obj", material_objects[2]));	// floor-textured rover bodyparts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_wings.obj", material_objects[3]));			// wing/solar panel parts
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_static_hoses.obj", material_objects[4]));		// non-arm hoses
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm1_hose.obj", material_objects[4]));		// hose connected to arm1
-	mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\rover\\rover_arm2_hose.obj", material_objects[4]));		// hose connected to arm2
-	//mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt.obj", material_objects[8]));	// terrain surface
+
+	///[01] green shell-textured rover bodyparts
+	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);
+
+	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		//[08] lowest robotic arm joint
+	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);			//[09]
+	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);			//[10]
+	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			//[11] outermost robotic arm joint
+	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);	//[12] hose connected to arm1
+	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);	//[13] hose connected to arm2
+
+	CreateNode("models\\rover\\rover_static_metal.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			//[02] non-arm metal parts
+	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			//[03] not yet correctly textured parts
+	CreateNode("models\\rover\\rover_gratings.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);							//[04] hopefully to be shaded with cutout material
+	CreateNode("models\\rover\\rover_body_flooring.obj", material_objects[2], identitymatrix, ShaderProgram0, rover_body_node);						//[05] floor-textured rover bodyparts
+	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);								//[06] wing/solar panel parts
+	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);						//[07] non-arm hoses
+	//mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt.obj", material_objects[8]));	[13]// terrain surface
 
 	// unlit objects:
-	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6]));
-	mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\environment_sphere.obj", material_objects[7]));
+	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6]));
+	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7],identitymatrix, ShaderProgram1, root_node);
 	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9]));
 	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\akvariemesh.obj", material_objects[10]));
 
@@ -548,6 +594,7 @@ string readTextFile(const string& pathAndFileName) {
 void keyboard(unsigned char key, int x, int y) {
 	Vector3f right;
 
+	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 	switch (tolower(key)) {
 		// --- camera movements ---
 	case 'w':

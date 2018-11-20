@@ -10,8 +10,13 @@ TObjectDiff(material_object.TObjectDiffuse0)
 MeshObjectUnlitDiffuse::~MeshObjectUnlitDiffuse()
 = default;
 
-void MeshObjectUnlitDiffuse::DrawObject() const
+void MeshObjectUnlitDiffuse::DrawObject(Matrix4f &transf, GLuint & shader_program) const
 {
+	// Set transformations
+	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");
+	assert(trULocation != -1);
+	glUniformMatrix4fv(trULocation, 1, false, transf.get());
+
 	// Bind the buffers
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);

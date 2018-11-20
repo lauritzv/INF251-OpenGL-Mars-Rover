@@ -2,13 +2,14 @@
 #include <GL/glew.h>
 #include "model_obj.h"
 #include "MaterialObject.h"
+#include "Matrix4.h"
 
 class MeshObject
 {
 public:
 	virtual ~MeshObject() = default;
 	bool successfullyImported = true;
-	virtual void DrawObject() const = 0;
+	virtual void DrawObject(Matrix4f &transf, GLuint &shader_program) const = 0;
 
 protected:
 	MeshObject(const char*& modelpath);
