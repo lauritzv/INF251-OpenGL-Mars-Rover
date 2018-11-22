@@ -21,13 +21,9 @@ void Curve::add_way_point(const Vector& point)
 	_on_way_point_added();
 }
 
-
-
 void Curve::add_node(const Vector& node)
 {
 	_nodes.push_back(node);
-
-
 
 	if(_nodes.size()==1)
 	{

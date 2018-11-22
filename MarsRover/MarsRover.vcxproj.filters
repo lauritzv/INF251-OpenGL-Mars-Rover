@@ -37,6 +37,9 @@
     <ClCompile Include="MeshObjectUnlitDiffuse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SceneNode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -80,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="MeshObjectUnlitDiffuse.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneNode.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

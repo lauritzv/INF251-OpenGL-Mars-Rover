@@ -57,3 +57,5 @@ Vector BSpline::getInterpolatedPosition(const double u, int const node0index)
 		);
 	}
 }
+
+

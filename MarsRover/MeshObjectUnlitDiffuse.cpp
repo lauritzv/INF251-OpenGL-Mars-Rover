@@ -1,7 +1,7 @@
 #include "MeshObjectUnlitDiffuse.h"
 
-MeshObjectUnlitDiffuse::MeshObjectUnlitDiffuse(const char * modelpath, MaterialObject& material_object) :
-MeshObject(modelpath),
+MeshObjectUnlitDiffuse::MeshObjectUnlitDiffuse(const char * modelpath, MaterialObject& material_object, GLuint& sp) :
+MeshObject(modelpath, sp),
 TObjectDiff(material_object.TObjectDiffuse0)
 {
 	ImportModelAndSetVBOIBO(modelpath);
@@ -10,11 +10,10 @@ TObjectDiff(material_object.TObjectDiffuse0)
 MeshObjectUnlitDiffuse::~MeshObjectUnlitDiffuse()
 = default;
 
-void MeshObjectUnlitDiffuse::DrawObject() const
+void MeshObjectUnlitDiffuse::DrawObject(Matrix4f &transf, Matrix4f &projection) const
 {
-	// Bind the buffers
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	// change program and reset if needed, bind buffers and set transform and projection
+	DrawObjectCommonPre(transf, projection);
 
 	// set the active texture units
 
@@ -22,30 +21,6 @@ void MeshObjectUnlitDiffuse::DrawObject() const
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, TObjectDiff);
 
-	//position
-	glVertexAttribPointer(
-		0,											//location
-		3,											//datacount per
-		GL_FLOAT,									//datatype
-		GL_FALSE,									//normalize?
-		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
-		reinterpret_cast<const GLvoid*>(0));		//attrib offset
-
-	//texcoords
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(3 * sizeof(float))); //offset by pos(3)
-
-	//normals
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(5 * sizeof(float)) //offset by pos(3)+texcoord(2)
-	);
-
-	// Draw the elements on the GPU
-	glDrawElements(
-		GL_TRIANGLES,
-		Model.getNumberOfIndices(),
-		GL_UNSIGNED_INT,
-		0);
+	//Bind vert attribs and draw
+	DrawObjectCommonPost();
 }

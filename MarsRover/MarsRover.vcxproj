@@ -139,6 +139,7 @@
     <ClInclude Include="MeshObjectDiffNormalSpec.h" />
     <ClInclude Include="MeshObjectUnlitDiffuse.h" />
     <ClInclude Include="model_obj.h" />
+    <ClInclude Include="SceneNode.h" />
     <ClInclude Include="spline\BSpline.h" />
     <ClInclude Include="spline\Curve.h" />
     <ClInclude Include="spline\Vector.h" />
@@ -154,6 +155,7 @@
     <ClCompile Include="MeshObjectDiffNormalSpec.cpp" />
     <ClCompile Include="MeshObjectUnlitDiffuse.cpp" />
     <ClCompile Include="model_obj.cpp" />
+    <ClCompile Include="SceneNode.cpp" />
     <ClCompile Include="spline\BSpline.cpp" />
     <ClCompile Include="spline\Curve.cpp" />
     <ClCompile Include="spline\Vector.cpp" />
