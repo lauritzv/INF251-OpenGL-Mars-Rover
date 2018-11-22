@@ -1,4 +1,3 @@
-#pragma once
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <gl/GL.h>
@@ -11,11 +10,8 @@
 #include <ctime>
 #include <chrono>
 
-//#include "Vector3.h"
-//#include "Matrix4.h"
 #include "create_matrix.h"
 #include "Camera.h"
-//#include "MaterialObject.h"
 
 #include "spline/BSpline.h"
 #include "MeshObjectDiffNormalSpec.h"
@@ -176,12 +172,9 @@ void display() {
 	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Calculate projection and set AR
+	// Calculate camera projection and set window aspect ratio
 	Cam.ar = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
 	projection = Cam.computeCameraTransform();
-	// Enable the diff/normal/spec shader program
-	//assert(ShaderProgram0 != 0);
-	//glUseProgram(ShaderProgram0);
 
 	// Enable the vertex attributes and set their format
 	glEnableVertexAttribArray(0); //pos
@@ -258,7 +251,7 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
 
-void initSpline(bool loop)
+void initSpline(const bool loop)
 {
 	curve = new BSpline();
 	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
@@ -280,6 +273,7 @@ void initSpline(bool loop)
 	//cout << "total length: " << curve->total_length() << endl;
 }
 
+/// creates a SceneNode, attach mesh, program and textures to it and add it to scene_nodes
 shared_ptr<SceneNode> CreateNode(
 	const char * model_path,
 	MaterialObject &material,
@@ -311,37 +305,38 @@ bool initModels() {
 
 	// diff / norm / spec mapped objects:
 
-	///[01] green shell-textured rover bodyparts
-	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);
+	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);	// green shell - textured rover bodyparts
 
-	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		//[08] lowest robotic arm joint
-	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);			//[09]
-	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);			//[10]
-	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			//[11] outermost robotic arm joint
-	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);	//[12] hose connected to arm1
-	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);	//[13] hose connected to arm2
+	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		// lowest robotic arm joint
+	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);			//
+	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);			//
+	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			// outermost robotic arm joint
+	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);					// hose connected to arm1
+	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);					// hose connected to arm2
 
-	CreateNode("models\\rover\\rover_static_metal.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			//[02] non-arm metal parts
-	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			//[03] not yet correctly textured parts
-	CreateNode("models\\rover\\rover_gratings.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);							//[04] hopefully to be shaded with cutout material
-	CreateNode("models\\rover\\rover_body_flooring.obj", material_objects[2], identitymatrix, ShaderProgram0, rover_body_node);						//[05] floor-textured rover bodyparts
-	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);								//[06] wing/solar panel parts
-	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);						//[07] non-arm hoses
-	//mesh_objects_shader0.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt.obj", material_objects[8]));	[13]// terrain surface
+	CreateNode("models\\rover\\rover_static_metal.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm metal parts
+	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			// not yet correctly textured parts
+	CreateNode("models\\rover\\rover_gratings.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);				// hopefully to be shaded with cutout material
+	CreateNode("models\\rover\\rover_body_flooring.obj", material_objects[2], identitymatrix, ShaderProgram0, rover_body_node);			// floor-textured rover bodyparts
+	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);					// wing/solar panel parts
+	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm hoses
 
+	// environment:
+
+	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
+	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
 	// unlit objects:
-	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6]));
-	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
-	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9]));
-	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\akvariemesh.obj", material_objects[10]));
+	CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram1, environment_surface_node);
+	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, environment_surface_node);
+	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram1, environment_surface_node);
+	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node);
 
 	// double-check if all objects has been sucessfully imported
-	//for (auto& el : mesh_objects_shader0)
-	//	if (!el->successfullyImported)
-	//		return false;
-	//for (auto& el : mesh_objects_shader1)
-	//	if (!el->successfullyImported)
-	//		return false;
+	for (auto& el : scene_nodes)
+	{
+		if (!el->SuccessfullyImported())
+			return false;
+	}
 
 	return true;
 }
@@ -380,15 +375,15 @@ bool initTextures()
 	// [7] environment sphere
 	material_objects.emplace_back("models\\aquarium\\grad_pink.png");
 
-	//// [8] terrain surface
-	//material_objects.emplace_back(
-	//	"models\\aquarium\\tunneled_terrain02-DiffM.png",
-	//	"models\\aquarium\\tunneled_terrain02-NM.png",
-	//	"models\\aquarium\\tunneled_terrain02-DM.png");
-	//// [9] terrain sides
-	//material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png");
-	//// [10] environment sphere
-	//material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
+	// [8] terrain surface
+	material_objects.emplace_back(
+		"models\\aquarium\\tunneled_terrain02-DiffM.png",
+		"models\\aquarium\\tunneled_terrain02-NM.png",
+		"models\\aquarium\\tunneled_terrain02-DM.png");
+	// [9] terrain sides
+	material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png");
+	// [10] akvariesider
+	material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
 
 
 	for (auto& el : material_objects)

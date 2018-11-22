@@ -49,3 +49,9 @@ void SceneNode::AddChild(const std::shared_ptr<SceneNode>& s)
 	s->SetParent(GetThis());
 }
 
+bool SceneNode::SuccessfullyImported() const
+{
+	if (mesh == nullptr)
+		return true;
+	return mesh->successfullyImported;
+}
