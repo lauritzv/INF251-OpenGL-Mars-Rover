@@ -2,8 +2,8 @@
 #include <cassert>
 #include "Matrix4.h"
 
-MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, MaterialObject& material_object) :
-	MeshObject(modelpath),
+MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, MaterialObject& material_object, GLuint &sp) :
+	MeshObject(modelpath, sp),
 	TObjectDiff(material_object.TObjectDiffuse0),
 	TObjectNorm(material_object.TObjectNormal0),
 	TObjectSpec(material_object.TObjectSpecular0)
@@ -14,21 +14,32 @@ MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, Mater
 MeshObjectDiffNormalSpec::~MeshObjectDiffNormalSpec()
 = default;
 
-void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, GLuint & shader_program) const
+void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection) const
 {
-	// Set transformations
-	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");
-	assert(trULocation != -1);
-	glUniformMatrix4fv(trULocation, 1, false, transf.get());
+	// change program and reset if needed, bind buffers and set transform and projection
+	DrawObjectCommonPre(transf, projection);
+
+	// set shader-specific uniforms:
 
 	Matrix4f normalMatrix = transf.getInverse().getTransposed();
 	const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
 	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
 																	// "true" made the lightsource rotate with the model!
+	// Set lightPositionMatrix
+	const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
+	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
-	// Bind the buffers
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
+	assert(vmULocation != -1);
+	glUniform1i(vmULocation, 0);
+
+	// tell the shader which T.U. to use
+	GLint const normSamplerULocation = glGetUniformLocation(shader_program, "normSampler");
+	glUniform1i(normSamplerULocation, 1);
+	GLint const specSamplerULocation = glGetUniformLocation(shader_program, "specSampler");
+	glUniform1i(specSamplerULocation, 2);
+	GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
+	glUniform1i(diffSamplerULocation, 0);
 
 	// set the active texture units
 
@@ -44,30 +55,6 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, GLuint & shader_prog
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, TObjectSpec);
 
-	//position
-	glVertexAttribPointer(
-		0,											//location
-		3,											//datacount per
-		GL_FLOAT,									//datatype
-		GL_FALSE,									//normalize?
-		sizeof(ModelOBJ::Vertex),					//stride (vertsize)
-		reinterpret_cast<const GLvoid*>(0));		//attrib offset
-
-	//texcoords
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_TRUE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(3 * sizeof(float))); //offset by pos(3)
-
-	//normals
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-		sizeof(ModelOBJ::Vertex),
-		reinterpret_cast<const GLvoid*>(5 * sizeof(float)) //offset by pos(3)+texcoord(2)
-	);
-
-	// Draw the elements on the GPU
-	glDrawElements(
-		GL_TRIANGLES,
-		Model.getNumberOfIndices(),
-		GL_UNSIGNED_INT,
-		0);
+	//Bind vert attribs and draw
+	DrawObjectCommonPost();
 }

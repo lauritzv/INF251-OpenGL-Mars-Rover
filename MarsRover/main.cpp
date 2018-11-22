@@ -21,6 +21,7 @@
 #include "MeshObjectDiffNormalSpec.h"
 #include "MeshObjectUnlitDiffuse.h"
 #include "SceneNode.h"
+#include "MaterialObject.h"
 
 using namespace std;
 
@@ -37,7 +38,8 @@ bool initShaders();
 bool initTextures();
 bool initShader(GLuint &shader_program, const string& vshaderpath, const string& fshaderpath);
 void initSpline(bool loop);
-void setCommonUniforms(GLuint &shader_program);
+shared_ptr<SceneNode> CreateNode(const char * model_path,MaterialObject &material,
+	const Matrix4f &transf_local,GLuint &shader_program,const shared_ptr<SceneNode> &parent);
 string readTextFile(const string&);
 
 // --- Global variables ---------------------------------------------------------------------------
@@ -49,10 +51,6 @@ GLuint ShaderProgram1 = 0;	///< A shader program: Unlit diff
 // Materials and textures
 vector<MaterialObject> material_objects;
 
-// Models
-vector<unique_ptr<MeshObject>> mesh_objects_shader0; /// Phong diff / norm / specmapped shaded objects
-vector<unique_ptr<MeshObject>> mesh_objects_shader1; /// Unlit diff shaded objects
-
 // Vertex transformations
 Vector3f Translation;	///< Translation
 float RotationX;
@@ -60,7 +58,7 @@ float RotationY;
 float Scaling;			///< Scaling
 Matrix4<float> projection;
 Matrix4<float> transformation;
-float aspect_ratio; /// Set from initial WindowSize
+create_matrix cm;
 
 // Mouse interactions
 int MouseX, MouseY;		///< The last position of the mouse
@@ -69,14 +67,13 @@ int MouseButton;		///< The last mouse button pressed or released
 // Toggled Mode
 bool wireframe = false;
 bool orthographic = false;
-
-
 int viewMode = 0;
 
 // Animation:
 bool animateScene = false;
 bool animateAlongPath = false;
 chrono::high_resolution_clock::time_point previousFrameTime;
+Camera Cam;
 
 // Curve stuff
 Curve* curve;
@@ -84,9 +81,7 @@ double position_along_path = 0.;
 int node_number = 0;
 Vector3f PositionAlongPath(const double &delta_time, const double &movespeed);
 
-Camera Cam;
-create_matrix cm;
-
+// Scene graph nodes:
 vector<shared_ptr<SceneNode>> scene_nodes;
 const auto root_node = make_shared<SceneNode>(nullptr);
 shared_ptr<SceneNode> rover_body_node;
@@ -122,8 +117,6 @@ int main(int argc, char **argv) {
 	glutInitWindowPosition(300, 50);
 	glutCreateWindow("OpenGL Tutorial");
 
-	aspect_ratio = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
-
 	// Initialize OpenGL callbacks
 	glutDisplayFunc(display);
 	glutIdleFunc(idle);
@@ -157,9 +150,6 @@ int main(int argc, char **argv) {
 	// init spline loop
 	initSpline(true);
 
-	// Camera init
-	Cam.ar = aspect_ratio;
-
 	// Shaders, Textures & buffers
 	if (!initShaders() || !initTextures() || !initModels())
 	{
@@ -169,9 +159,6 @@ int main(int argc, char **argv) {
 	}
 
 	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
-
-	//Start timer
-	//Timer = clock();
 
 	//Record current time
 	previousFrameTime = chrono::high_resolution_clock::now();
@@ -189,44 +176,25 @@ void display() {
 	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	{
-		// Enable the diff/normal/spec shader program
-		assert(ShaderProgram0 != 0);
-		glUseProgram(ShaderProgram0);
+	// Calculate projection and set AR
+	Cam.ar = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
+	projection = Cam.computeCameraTransform();
+	// Enable the diff/normal/spec shader program
+	//assert(ShaderProgram0 != 0);
+	//glUseProgram(ShaderProgram0);
 
-		setCommonUniforms(ShaderProgram0);
+	// Enable the vertex attributes and set their format
+	glEnableVertexAttribArray(0); //pos
+	glEnableVertexAttribArray(1); //uv-coord
+	glEnableVertexAttribArray(2); //normals
 
-
-
-		// Enable the vertex attributes and set their format
-		glEnableVertexAttribArray(0); //pos
-		glEnableVertexAttribArray(1); //uv-coord
-		glEnableVertexAttribArray(2); //normals
-
-		//draw objects:
-		//for (auto& el : mesh_objects_shader0)
-		//	el->DrawObject();
-	}
-
-
-	root_node->Draw(ShaderProgram0);
-
-	//{
-	//	// Enable the unlit shader program
-	//	assert(ShaderProgram1 != 0);
-	//	glUseProgram(ShaderProgram1);
-
-	//	setCommonUniforms(ShaderProgram1);
-
-	//	//draw objects:
-	//	for (auto& el : mesh_objects_shader1)
-	//		el->DrawObject();
-	//}
+	//Trigger drawing of scene from scenegraph root
+	root_node->Draw(projection);
 
 	//cleanup VAOs
-	glDisableVertexAttribArray(0); // pos
-	glDisableVertexAttribArray(1); // uv
-	glDisableVertexAttribArray(2); // normal
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 
 	// Disable the shader program (not necessary but recommended)
 	glUseProgram(0);
@@ -253,54 +221,11 @@ void idle()
 			Translation = PositionAlongPath(delta_time, .005);
 
 		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
+		rover_body_node->SetTransform(transformation);
 	}
 	previousFrameTime = time_now;
 
 	glutPostRedisplay();
-}
-
-void setCommonUniforms(GLuint &shader_program)
-{
-	//// Set transformations
-	//const GLint trULocation = glGetUniformLocation(ShaderProgram0, "transformation");
-	//assert(trULocation != -1);
-	//glUniformMatrix4fv(trULocation, 1, false, transf.get());
-
-	// Set projection
-	const GLint prULocation = glGetUniformLocation(shader_program, "projection");
-	assert(prULocation != -1);
-	glUniformMatrix4fv(prULocation, 1, false, projection.get());
-	glUniformMatrix4fv(prULocation, 1, false, Cam.computeCameraTransform().get());
-	//cout << std::to_string(GL_CURRENT_PROGRAM) << endl;
-	//cout << to_string(shader_program);
-
-	if (shader_program == ShaderProgram0) // The Phong-Normal shaded material:
-	{
-		// Set lightPositionMatrix
-		const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
-		glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
-
-		// Set normalMatrix
-		//Matrix4f normalMatrix = transf.getInverse().getTransposed();
-		//const GLint nmaULocation = glGetUniformLocation(shader_program, "normal_matrix");
-		//glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
-		//																// "true" made the lightsource rotate with the model!
-		const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
-		assert(vmULocation != -1);
-		glUniform1i(vmULocation, viewMode);
-
-		// tell the shader which T.U. to use
-		GLint const normSamplerULocation = glGetUniformLocation(shader_program, "normSampler");
-		glUniform1i(normSamplerULocation, 1);
-		GLint const specSamplerULocation = glGetUniformLocation(shader_program, "specSampler");
-		glUniform1i(specSamplerULocation, 2);
-	}
-	if (shader_program == ShaderProgram0 || shader_program == ShaderProgram1)
-	{
-		GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
-		glUniform1i(diffSamplerULocation, 0);
-	}
-
 }
 
 Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
@@ -309,8 +234,15 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
 	const double deltaMovement = delta_time * movespeed;
 	position_along_path += deltaMovement;
 
-	if (position_along_path > curve->total_length())
-		position_along_path -= curve->total_length();
+	if (curve->loop){
+		if (position_along_path > curve->total_length())
+			position_along_path -= curve->total_length();
+	}
+	else
+	{
+		position_along_path = min(position_along_path, curve->total_length()-1);
+		animateAlongPath = false;
+	}
 
 	const auto position_rescaled = position_along_path / curve->total_length() * curve->node_count();
 	const auto node_number = static_cast<int>(position_rescaled);
@@ -325,40 +257,42 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
 
 // ************************************************************************************************
 // *** Other methods implementation ***************************************************************
+
 void initSpline(bool loop)
 {
 	curve = new BSpline();
 	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
-	//main  control points
+	curve->loop = loop;
+
+	//control points:
 	curve->add_way_point(Vector(-6, -2, -16));
 	curve->add_way_point(Vector(-6, -2, -8));
 	curve->add_way_point(Vector(6, -2, -8));
 	curve->add_way_point(Vector(6, -2, -16));
 	if (loop)
 	{
-		curve->loop = true;
 		//first 3 points added again for looping BSpline
 		for (auto i = 0; i < 3; i++)
 			curve->add_way_point(curve->_way_points[i]);
 	}
 
-	cout << "nodes: " << curve->node_count() << endl;
-	cout << "total length: " << curve->total_length() << endl;
+	//cout << "nodes: " << curve->node_count() << endl;
+	//cout << "total length: " << curve->total_length() << endl;
 }
 
 shared_ptr<SceneNode> CreateNode(
 	const char * model_path,
 	MaterialObject &material,
 	const Matrix4f &transf_local,
-	const GLuint &shader_program,
+	GLuint &shader_program,
 	const shared_ptr<SceneNode> &parent)
 {
 	unique_ptr<MeshObject> new_object;
 
 	if (shader_program == ShaderProgram0)
-		new_object = make_unique<MeshObjectDiffNormalSpec>(model_path, material);
+		new_object = make_unique<MeshObjectDiffNormalSpec>(model_path, material, shader_program);
 	else if (shader_program == ShaderProgram1)
-		new_object = make_unique<MeshObjectUnlitDiffuse>(model_path, material);
+		new_object = make_unique<MeshObjectUnlitDiffuse>(model_path, material, shader_program);
 	else new_object = nullptr;
 
 	const auto new_node = make_shared<SceneNode>(std::move(new_object));
@@ -397,17 +331,17 @@ bool initModels() {
 
 	// unlit objects:
 	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6]));
-	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7],identitymatrix, ShaderProgram1, root_node);
+	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
 	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9]));
 	//mesh_objects_shader1.emplace_back(make_unique<MeshObjectDiffNormalSpec>("models\\aquarium\\akvariemesh.obj", material_objects[10]));
 
 	// double-check if all objects has been sucessfully imported
-	for (auto& el : mesh_objects_shader0)
-		if (!el->successfullyImported)
-			return false;
-	for (auto& el : mesh_objects_shader1)
-		if (!el->successfullyImported)
-			return false;
+	//for (auto& el : mesh_objects_shader0)
+	//	if (!el->successfullyImported)
+	//		return false;
+	//for (auto& el : mesh_objects_shader1)
+	//	if (!el->successfullyImported)
+	//		return false;
 
 	return true;
 }
@@ -619,7 +553,6 @@ void keyboard(unsigned char key, int x, int y) {
 		break;
 	case 'r': // Reset camera status
 		Cam.init();
-		Cam.ar = aspect_ratio;
 		break;
 	case 't':
 		animateScene = !animateScene;
@@ -716,7 +649,6 @@ void motion(int x, int y) {
 		Cam.up = rr * Cam.up;
 		Cam.target = rr * Cam.target;
 	}
-
 	// Lock the mouse at the center of the screen
 	glutWarpPointer(MouseX, MouseY);
 

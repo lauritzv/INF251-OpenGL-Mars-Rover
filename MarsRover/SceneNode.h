@@ -32,5 +32,5 @@ public:
 	void AddChild(const std::shared_ptr<SceneNode>& s);
 
 	void Update();
-	void Draw(GLuint &shader_program) const;
+	void Draw(Matrix4f &projection) const;
 };

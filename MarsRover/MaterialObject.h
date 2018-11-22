@@ -8,6 +8,7 @@ public:
 	MaterialObject(const char* pathfilenameDiff, const char* pathfilenameNorm, const char* pathfilenameSpec);
 	MaterialObject(const char* pathfilenameDiff);
 	bool successfullyImported = true;
+
 private:
 	unsigned int TWidth = 0, THeight = 0;
 	unsigned char *TextureDataDiffuse = nullptr, *TextureDataNorm = nullptr, *TextureDataSpec = nullptr;

@@ -12,15 +12,15 @@ void SceneNode::Update() {
 		i->Update();
 }
 
-void SceneNode::Draw(GLuint& shader_program) const
+void SceneNode::Draw(Matrix4f &projection) const
 {
 	for (auto& el : children)
-		el->Draw(shader_program);
+		el->Draw(projection);
 
 	if (mesh == nullptr)
 		return;
 
-	mesh->DrawObject(GetWorldTransform(),shader_program);
+	mesh->DrawObject(GetWorldTransform(), projection);
 }
 
 SceneNode::~SceneNode() = default;
