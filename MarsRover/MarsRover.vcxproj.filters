@@ -133,5 +133,11 @@
     <None Include="shaders\shader.unlitdiffuse.v.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\fshader_ass4.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\vshader_ass4.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

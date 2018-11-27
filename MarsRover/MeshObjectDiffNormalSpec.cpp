@@ -29,9 +29,9 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
 	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
-	const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
-	assert(vmULocation != -1);
-	glUniform1i(vmULocation, 0);
+	//const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
+	//assert(vmULocation != -1);
+	//glUniform1i(vmULocation, 0);
 
 	// tell the shader which T.U. to use
 	GLint const normSamplerULocation = glGetUniformLocation(shader_program, "normSampler");

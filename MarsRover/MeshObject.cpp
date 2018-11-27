@@ -31,6 +31,14 @@ void MeshObject::DrawObjectCommonPre(Matrix4f & transf, Matrix4f & projection) c
 /// Bind vert attribs and draw
 void MeshObject::DrawObjectCommonPost() const
 {
+	/*
+		float position[3];
+        float texCoord[2];
+        float normal[3];
+        float tangent[4];
+        float bitangent[3];
+	 */
+
 	//position
 	glVertexAttribPointer(
 		0,											//location
@@ -50,6 +58,18 @@ void MeshObject::DrawObjectCommonPost() const
 		sizeof(ModelOBJ::Vertex),
 		reinterpret_cast<const GLvoid*>(5 * sizeof(float)) //offset by pos(3)+texcoord(2)
 	);
+
+	//tangent
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+		sizeof(ModelOBJ::Vertex),
+		reinterpret_cast<const GLvoid*>(8 * sizeof(float)) //offset by pos(3)+texcoord(2)+normals(3)
+	);
+
+	////bi-tangent
+	//glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE,
+	//	sizeof(ModelOBJ::Vertex),
+	//	reinterpret_cast<const GLvoid*>(12 * sizeof(float))
+	//);
 
 	// Draw the elements on the GPU
 	glDrawElements(
