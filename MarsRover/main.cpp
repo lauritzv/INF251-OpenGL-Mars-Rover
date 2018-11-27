@@ -21,6 +21,19 @@
 
 using namespace std;
 
+// run on gpu
+extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
+
+// Constants:
+struct Direction
+{
+	const Vector3f right = Vector3f(1.f, 0.f, 0.f);
+	const Vector3f up = Vector3f(0.f, 1.f, 0.f);
+	const Vector3f forward = Vector3f(0.f, 0.f, -1.f);
+};
+const Direction dir; // Direction vectors (float)
+const auto PI = atan2l(0., -1.);
+
 // --- OpenGL callbacks ---------------------------------------------------------------------------
 void display();
 void idle();
@@ -34,8 +47,8 @@ bool initShaders();
 bool initTextures();
 bool initShader(GLuint &shader_program, const string& vshaderpath, const string& fshaderpath);
 void initSpline(bool loop);
-shared_ptr<SceneNode> CreateNode(const char * model_path,MaterialObject &material,
-	const Matrix4f &transf_local,GLuint &shader_program,const shared_ptr<SceneNode> &parent);
+shared_ptr<SceneNode> CreateNode(const char * model_path, MaterialObject &material,
+	const Matrix4f &transf_local, GLuint &shader_program, const shared_ptr<SceneNode> &parent);
 string readTextFile(const string&);
 
 // --- Global variables ---------------------------------------------------------------------------
@@ -53,7 +66,7 @@ float RotationX;
 float RotationY;
 float Scaling;			///< Scaling
 Matrix4<float> projection;
-Matrix4<float> transformation;
+//Matrix4<float> transformation;
 create_matrix cm;
 
 // Mouse interactions
@@ -65,11 +78,16 @@ bool wireframe = false;
 bool orthographic = false;
 int viewMode = 0;
 
+// Camera
+Camera Cam;
+
 // Animation:
 bool animateScene = false;
 bool animateAlongPath = false;
 chrono::high_resolution_clock::time_point previousFrameTime;
-Camera Cam;
+double armCurlPhase = 0.;
+const auto armCurlRate = .001;
+const auto armCurlMagnitude = 25.;
 
 // Curve stuff
 Curve* curve;
@@ -141,7 +159,6 @@ int main(int argc, char **argv) {
 	RotationX = 0.0;
 	RotationY = 0.0;
 	Scaling = 1.0f;
-	transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
 
 	// init spline loop
 	initSpline(true);
@@ -206,15 +223,21 @@ void idle()
 	if (animateScene) {
 
 		// Model rotation
-		const double rotationSpeed = 0.1;
+		const auto rotationSpeed = .1;
 		RotationX += rotationSpeed * delta_time;
+		RotationY += rotationSpeed * delta_time;
+		armCurlPhase += armCurlRate * delta_time;
+		//auto armRotation = cm.create_transformation_matrix(Vector3f(0.f, 0.f, 0.f), 0.f, -RotationY, 1.f);
+		const auto armCurlAngle = armCurlMagnitude * sin(2 * PI * armCurlPhase);
+		rover_arm0->SetTransform(Matrix4f().createRotation(armCurlAngle + 15.f, dir.right));
+		rover_arm1->SetTransform(Matrix4f().createRotation(armCurlAngle - 40.f, dir.right));
+		rover_arm2->SetTransform(Matrix4f().createRotation(armCurlAngle, dir.right));
 
 		// Movement along BSpline
 		if (animateAlongPath)
 			Translation = PositionAlongPath(delta_time, .005);
 
-		transformation = cm.create_transformation_matrix(Translation, RotationX, RotationY, Scaling);
-		rover_body_node->SetTransform(transformation);
+		rover_body_node->SetTransform(cm.create_transformation_matrix(Translation, RotationX, 0.f, Scaling));
 	}
 	previousFrameTime = time_now;
 
@@ -227,13 +250,13 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
 	const double deltaMovement = delta_time * movespeed;
 	position_along_path += deltaMovement;
 
-	if (curve->loop){
+	if (curve->loop) {
 		if (position_along_path > curve->total_length())
 			position_along_path -= curve->total_length();
 	}
 	else
 	{
-		position_along_path = min(position_along_path, curve->total_length()-1);
+		position_along_path = min(position_along_path, curve->total_length() - 1);
 		animateAlongPath = false;
 	}
 
@@ -307,10 +330,16 @@ bool initModels() {
 
 	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);	// green shell - textured rover bodyparts
 
+
 	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		// lowest robotic arm joint
-	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);			//
-	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);			//
+	rover_arm0->SetOriginalPosition(Vector3f(0.f, 2.411f, 1.458f));																		// it's anchorpoint
+	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);
+	rover_arm1->SetOriginalPosition(Vector3f(0.f, 4.643f, 0.588f));
+	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);
+	rover_arm2->SetOriginalPosition(Vector3f(0.f, 5.395f, 3.158f));
 	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			// outermost robotic arm joint
+	rover_arm3->SetOriginalPosition(Vector3f(0.f, 5.226f, 5.594f));
+
 	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);					// hose connected to arm1
 	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);					// hose connected to arm2
 
@@ -324,8 +353,8 @@ bool initModels() {
 	// environment:
 	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
 
-	//const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
-	//environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
+	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
+	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
 	//// unlit objects:
 	//CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram1, environment_surface_node);
 	//CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram1, environment_surface_node);
@@ -387,8 +416,10 @@ bool initTextures()
 
 
 	for (auto& el : material_objects)
+	{
 		if (!el.successfullyImported)
 			return false;
+	}
 	return true;
 }
 
