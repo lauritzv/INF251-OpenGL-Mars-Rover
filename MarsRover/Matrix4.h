@@ -141,10 +141,11 @@ public:
 
     /// Create a matrix using the specified values. Values must be specified column-wise.
 	template <class U>
-    Matrix4(const U& val0, const U& val4, const U& val8, const U& val12,
-					const U& val1, const U& val5, const U& val9, const U& val13,
-					const U& val2, const U& val6, const U& val10, const U& val14,
-					const U& val3, const U& val7, const U& val11, const U& val15)
+    Matrix4(
+		const U& val0, const U& val4, const U& val8, const U& val12,
+		const U& val1, const U& val5, const U& val9, const U& val13,
+		const U& val2, const U& val6, const U& val10, const U& val14,
+		const U& val3, const U& val7, const U& val11, const U& val15)
 	{
 		mElements[0] = val0; mElements[4] = val4;  mElements[8] = val8;  mElements[12] = val12;
 		mElements[1] = val1; mElements[5] = val5;  mElements[9] = val9;  mElements[13] = val13;
