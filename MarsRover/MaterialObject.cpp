@@ -2,7 +2,7 @@
 #include "lodepng.h"
 #include <iostream>
 
-MaterialObject::MaterialObject(const char* pathfilenameDiff, const char* pathfilenameNorm, const char* pathfilenameSpec)
+MaterialObject::MaterialObject(const char* pathfilenameDiff, const char* pathfilenameNorm, const char* pathfilenameSpec, const Vector3f& specular_color) : specular(specular_color)
 {
 	successfullyImported =
 		initTexture(pathfilenameDiff, TObjectDiffuse0,TextureDataDiffuse) &&
@@ -16,9 +16,25 @@ MaterialObject::MaterialObject(const char* pathfilenameDiff)
 		initTexture(pathfilenameDiff, TObjectDiffuse0, TextureDataDiffuse);
 }
 
-MaterialObject::MaterialObject(const Vector3f& color)
+MaterialObject::MaterialObject(const Vector3f& color) : tint(color)
 {
-	tint = color;
+}
+
+MaterialObject::MaterialObject(const Vector3f& color, const Vector3f& specular_color) : tint(color), specular(specular_color)
+{
+}
+
+MaterialObject::MaterialObject(const char* pathfilenameDiff, const Vector3f& specular_color) : specular(specular_color)
+{
+	successfullyImported =
+		initTexture(pathfilenameDiff, TObjectDiffuse0, TextureDataDiffuse);
+}
+
+MaterialObject::MaterialObject(const char* pathfilenameDiff, const char* pathfilenameNorm, const Vector3f& specular_color)
+{
+	successfullyImported =
+		initTexture(pathfilenameDiff, TObjectDiffuse0, TextureDataDiffuse) &&
+		initTexture(pathfilenameNorm, TObjectNormal0, TextureDataNorm);
 }
 
 bool MaterialObject::initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)

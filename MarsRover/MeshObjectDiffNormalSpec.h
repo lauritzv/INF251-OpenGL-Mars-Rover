@@ -13,4 +13,7 @@ protected:
 	GLuint &TObjectDiff;
 	GLuint &TObjectNorm;
 	GLuint &TObjectSpec;
+
+	Vector3f& specColor;
+	Vector3f& tint;
 };
