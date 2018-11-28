@@ -46,7 +46,7 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	// set the active uniforms and texture units
 
 	const GLint hasDiffULocation = glGetUniformLocation(shader_program, "hasDiffuseMap");
-	assert(hasDiffULocation != -1);
+	//assert(hasDiffULocation != -1);
 	if (TObjectDiff != -1)
 	{
 		//glActiveTexture(GL_TEXTURE0);
@@ -56,7 +56,7 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	else glUniform1i(hasDiffULocation, 0);
 
 	const GLint hasNormalULocation = glGetUniformLocation(shader_program, "hasNormalMap");
-	assert(hasNormalULocation != -1);
+	//assert(hasNormalULocation != -1);
 	if (TObjectNorm != -1)
 	{
 		//glActiveTexture(GL_TEXTURE1);
@@ -66,7 +66,7 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	else glUniform1i(hasNormalULocation, 0);
 
 	const GLint hasSpecularULocation = glGetUniformLocation(shader_program, "hasSpecularMap");
-	assert(hasSpecularULocation != -1);
+	//assert(hasSpecularULocation != -1);
 	if (TObjectSpec != -1)
 	{
 		//glActiveTexture(GL_TEXTURE2);
@@ -79,11 +79,11 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	//uniform vec3 diffuseTint = vec3(1., 1., 1.);
 
 	const GLint specColorULocation = glGetUniformLocation(shader_program, "specularColor");
-	assert(specColorULocation != -1);
+	//assert(specColorULocation != -1);
 	glUniform3fv(specColorULocation, 1, specColor.get());
 
 	const GLint tintULocation = glGetUniformLocation(shader_program, "diffuseTint");
-	assert(tintULocation != -1);
+	//assert(tintULocation != -1);
 	glUniform3fv(tintULocation, 1, tint.get());
 
 	// set the active texture units

@@ -81,11 +81,21 @@ int viewMode = 0;
 // Camera
 Camera Cam;
 
+// Lighting
+Vector3f pointLightPositions[] = {
+		Vector3f(0.7f,  0.2f,  2.0f),
+		Vector3f(2.3f, -3.3f, -4.0f),
+		Vector3f(-4.0f,  2.0f, -12.0f),
+		Vector3f(0.0f,  0.0f, -3.0f) };
+
+
 // Animation:
 bool animateScene = false;
 bool animateAlongPath = false;
 chrono::high_resolution_clock::time_point previousFrameTime;
-double armCurlPhase = 0.;
+
+// Arm-animation variables:
+auto armCurlPhase = 0.;
 const auto armCurlRate = .001;
 const auto armCurlMagnitude = 25.;
 
@@ -103,6 +113,7 @@ shared_ptr<SceneNode> rover_arm0;
 shared_ptr<SceneNode> rover_arm1;
 shared_ptr<SceneNode> rover_arm2;
 shared_ptr<SceneNode> rover_arm3;
+shared_ptr<SceneNode> skalleNode;
 
 // --- main() -------------------------------------------------------------------------------------
 /// The entry point of the application
@@ -238,6 +249,7 @@ void idle()
 			Translation = PositionAlongPath(delta_time, .005);
 
 		rover_body_node->SetTransform(cm.create_transformation_matrix(Translation, RotationX, 0.f, Scaling));
+		skalleNode->SetTransform(Matrix4f().createRotation(RotationY, dir.up));
 	}
 	previousFrameTime = time_now;
 
@@ -355,10 +367,15 @@ bool initModels() {
 
 	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
 	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
+
 	//// unlit objects:
-	//CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram1, environment_surface_node);
-	//CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram1, environment_surface_node);
+	skalleNode = CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram0, root_node);
+	skalleNode->SetOriginalPosition(Vector3f(-7.342f, 3.832f, -68.297f));
+	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram0, environment_surface_node);
 	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node);
+
+
+	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	// double-check if all objects has been sucessfully imported
 	for (auto& el : scene_nodes)
@@ -372,35 +389,36 @@ bool initModels() {
 
 bool initTextures()
 {
+	auto defaultSpec = Vector3f(2.f, 2.f, 2.f);
 	// [0] grimy green rover body shell textures
 	material_objects.emplace_back(
 		"models\\rover\\shell_body_diff.png",
 		"models\\rover\\crystalshell_norm.png",
-		"models\\rover\\crystalshell_ao.png");
+		"models\\rover\\crystalshell_ao.png", defaultSpec);
 	// [1] rust textures
 	material_objects.emplace_back(
 		"models\\rover\\rust_comb.png",
 		"models\\rover\\rust_norm.png",
-		"models\\rover\\rust_spec.png");
+		"models\\rover\\rust_spec.png", defaultSpec);
 	// [2] walkable grating textures
 	material_objects.emplace_back(
 		"models\\rover\\grating_comb.png",
 		"models\\rover\\grating_norm.png",
-		"models\\rover\\grating_ao.png");
+		"models\\rover\\grating_ao.png", defaultSpec);
 	// [3] wing (solar panel) textures
 	material_objects.emplace_back(
 		"models\\rover\\wings_diff.png",
 		"models\\rover\\wings_norm.png",
-		"models\\rover\\wings_spec.png");
+		"models\\rover\\wings_spec.png", defaultSpec);
 	// [4] grimy red hose textures
 	material_objects.emplace_back(
 		"models\\rover\\hose_diff.png",
 		"models\\rover\\rust_spec.png",
-		"models\\rover\\rust_spec.png");
+		"models\\rover\\rust_spec.png", defaultSpec);
 	// [5] unlit texture
 	material_objects.emplace_back("models\\rover\\shell_body_diff.png");
 	// [6] skull
-	material_objects.emplace_back("models\\aquarium\\skalle03_DiffM.png");
+	material_objects.emplace_back("models\\aquarium\\skalle03_DiffM.png", defaultSpec);
 	// [7] environment sphere
 	material_objects.emplace_back("models\\aquarium\\grad_pink.png");
 
@@ -410,9 +428,11 @@ bool initTextures()
 		"models\\aquarium\\tunneled_terrain02-NM.png",
 		"models\\aquarium\\tunneled_terrain02-DM.png");
 	// [9] terrain sides
-	material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png");
+	material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png", defaultSpec);
 	// [10] akvariesider
 	material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
+	// [11] pure white
+	material_objects.emplace_back(Vector3f(1.f,1.f,1.f));
 
 
 	for (auto& el : material_objects)

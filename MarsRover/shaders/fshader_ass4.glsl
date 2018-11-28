@@ -20,11 +20,14 @@ out vec4 fColor;
 uniform vec3 specularColor;
 uniform vec3 diffuseTint;
 
-const float shinyness = 32.;
-const float ambientStrength = .1;
+const float shinyness = 75.;
+const float ambientStrength = .2;
 	
 vec3 GetNormal();
 vec4 GetDiffuseColor();
+
+bool flipY = false;
+bool flipXY = true;
 
 void main() {
     
@@ -64,14 +67,26 @@ void main() {
     
     //Output final color
 	fColor = ambient + lambertian * diffuse + specular * specularcolor;
+//	fColor = lambertian * diffuse;
+//	fColor = vec4((normal*.5)+.5,1.);
 }
 
 vec3 GetNormal(){
     vec3 n;
-	if (hasNormalMap == 1)
-		n = texture(normSampler,vTextureCoord).xyz;
-	else n = vec3(.5,.5,1.);
-    
+	if (hasNormalMap == 1){
+		vec2 newTexCoord = vTextureCoord;
+		if (flipY)
+			newTexCoord.y = 1-vTextureCoord.y;
+	
+		n = 2*texture(normSampler,newTexCoord).xyz -1.;
+		if (flipXY){
+			float temp = n.y;
+			n.y = n.x;
+			n.x = temp;
+		}
+	}
+	else n = 2*vec3(.5,.5,1.) -1;
+
 	return normalize(v_TBN * n);
 }
 
