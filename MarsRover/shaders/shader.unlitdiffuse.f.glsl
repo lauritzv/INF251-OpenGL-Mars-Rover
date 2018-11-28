@@ -4,6 +4,13 @@ in vec2 fTexCoords;
 uniform sampler2D diffSampler;
 out vec4 FragColor;
 
+uniform int has_diffuse_map;
+uniform vec3 tint_color;
+
 void main() { 
-	FragColor = texture2D(diffSampler, fTexCoords);
+	
+	if (has_diffuse_map == 1)
+		FragColor = texture2D(diffSampler, fTexCoords);
+	
+	else FragColor = vec4(tint_color,1);
 }

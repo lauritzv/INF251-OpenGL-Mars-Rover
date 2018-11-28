@@ -10,4 +10,5 @@ public:
 
 protected:
 	GLuint &TObjectDiff;
+	Vector3f tintColor;
 };

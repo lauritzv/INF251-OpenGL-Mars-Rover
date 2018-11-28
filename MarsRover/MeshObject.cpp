@@ -32,6 +32,7 @@ void MeshObject::DrawObjectCommonPre(Matrix4f & transf, Matrix4f & projection) c
 void MeshObject::DrawObjectCommonPost() const
 {
 	/*
+	  Vertex:
 		float position[3];
         float texCoord[2];
         float normal[3];

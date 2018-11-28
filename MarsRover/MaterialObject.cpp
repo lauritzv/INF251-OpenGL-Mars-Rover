@@ -16,6 +16,11 @@ MaterialObject::MaterialObject(const char* pathfilenameDiff)
 		initTexture(pathfilenameDiff, TObjectDiffuse0, TextureDataDiffuse);
 }
 
+MaterialObject::MaterialObject(const Vector3f& color)
+{
+	tint = color;
+}
+
 bool MaterialObject::initTexture(const char* pathfilename, GLuint &TObject, unsigned char* &TextureData)
 {
 	unsigned int fail = lodepng_decode_file(
