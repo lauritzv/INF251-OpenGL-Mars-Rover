@@ -13,6 +13,11 @@ uniform mat4x4 projection;
 // = transpose(inverse(transformation))
 uniform mat4x4 normal_matrix;
 
+bool mirrorY = false;
+uniform int hasDiffuseMap;
+uniform int hasNormalMap;
+uniform int hasSpecularMap;
+
 // point-light:
 uniform mat4x4 lightPositionMat;
 const vec4 lightPositionV = vec4(0.0,15.0,10.0,0.0);
@@ -22,30 +27,40 @@ out vec3 v; //vertex positison
 out vec3 lightPos;
 out mat3 v_TBN;
 
+flat out int hasDiffuseMapV;
+flat out int hasNormalMapV;
+flat out int hasSpecularMapV;
+
 mat3 calculateTBN();
 
 //The vertex shader is very simple, and serves to pass most of the data
 //to the fragment shader.
-void main() {
+void main() 
+{
+	hasDiffuseMapV = hasDiffuseMap;
+	hasNormalMapV = hasNormalMap;
+	hasSpecularMapV = hasSpecularMap;
+
+	if (mirrorY && hasDiffuseMap + hasNormalMap + hasSpecularMap > 0)
+		vTextureCoord.y = 1. - aTexCoords.y;
+
 	v_TBN =  calculateTBN();
 
     vTextureCoord = aTexCoords;
     v = (transformation * vec4(aPos,1.)).xyz;
     lightPos = (v_TBN * lightPositionV.xyz);
 
-//	    LightDir = normalize( toObjectLocal * (Light.Position.xyz - pos) );
+//	  LightDir = normalize( toObjectLocal * (Light.Position.xyz - pos) );
 //    ViewDir = toObjectLocal * normalize(-pos);
-//
-    gl_Position = projection * transformation * vec4(aPos,1.);
-  }
 
-  mat3 calculateTBN() {
-  	mat3 normalMatrix = mat3(normal_matrix);
-	vec3 N = normalMatrix * aNormal; 
-	vec3 T = normalMatrix * aTangent.xyz;
-	vec3 B = normalMatrix * (cross(aNormal, aTangent.xyz) * aTangent.w);
-//	vec3 N = normalize(normalMatrix * aNormal); 
-//	vec3 T = normalize(normalMatrix * aTangent.xyz);
-//	vec3 B = normalize(normalMatrix * (cross(aNormal, aTangent.xyz) * aTangent.w) );
+    gl_Position = projection * transformation * vec4(aPos,1.);
+}
+
+mat3 calculateTBN() 
+{
+	mat3 normalMatrix = mat3(normal_matrix);
+	vec3 N = normalize(normalMatrix * aNormal); 
+	vec3 T = normalize(normalMatrix * aTangent.xyz);
+	vec3 B = normalize(normalMatrix * (cross(aNormal, aTangent.xyz) * aTangent.w) );
 	return mat3(T,B,N);
-  }
+}

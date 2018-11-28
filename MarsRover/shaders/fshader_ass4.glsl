@@ -11,9 +11,9 @@ uniform sampler2D diffSampler;
 uniform sampler2D normSampler;
 uniform sampler2D specSampler;
 
-uniform int hasDiffuseMap;
-uniform int hasNormalMap;
-uniform int hasSpecularMap;
+flat in int hasDiffuseMapV;
+flat in int hasNormalMapV;
+flat in int hasSpecularMapV;
 
 out vec4 fColor;
 
@@ -25,20 +25,18 @@ const float ambientStrength = .2;
 	
 vec3 GetNormal();
 vec4 GetDiffuseColor();
+//vec2 newTexCoord;
+bool flipRG = true;
 
-bool flipY = false;
-bool flipXY = true;
-
-void main() {
-    
+void main() 
+{
     //Sample the texture into textureColor.
     //Then we mix it with our ambient, diffuse, and specular colors.
-
 	vec4 diffuse = GetDiffuseColor();
 	vec4 ambient = ambientStrength * diffuse;
 
     vec4 specularcolor = vec4(specularColor,1.);
-	if (hasSpecularMap == 1)
+	if (hasSpecularMapV == 1)
 		specularcolor *= texture(specSampler, vTextureCoord);
     
 	//Calculate the normal
@@ -71,15 +69,13 @@ void main() {
 //	fColor = vec4((normal*.5)+.5,1.);
 }
 
-vec3 GetNormal(){
+vec3 GetNormal()
+{
     vec3 n;
-	if (hasNormalMap == 1){
-		vec2 newTexCoord = vTextureCoord;
-		if (flipY)
-			newTexCoord.y = 1-vTextureCoord.y;
-	
-		n = 2*texture(normSampler,newTexCoord).xyz -1.;
-		if (flipXY){
+	if (hasNormalMapV == 1)
+	{
+		n = 2 * texture(normSampler,vTextureCoord).xyz - 1.;
+		if (flipRG){
 			float temp = n.y;
 			n.y = n.x;
 			n.x = temp;
@@ -93,7 +89,7 @@ vec3 GetNormal(){
 vec4 GetDiffuseColor()
 {
 	vec4 textureColor;
-	if (hasDiffuseMap == 1)
+	if (hasDiffuseMapV == 1)
 		textureColor = texture(diffSampler, vTextureCoord);
     else
 		textureColor = vec4(diffuseTint,1.);
