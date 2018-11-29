@@ -2,9 +2,14 @@
 
 precision mediump float;
 
+struct PositionalLight
+{	vec4 ambient, diffuse, specular;
+	vec3 position;
+};
+
 in vec2 vTextureCoord;
 in vec3 v;
-in vec3 lightPos;
+//in vec3 lightPos;
 in mat3 v_TBN;
 
 uniform sampler2D diffSampler;
@@ -21,19 +26,63 @@ uniform vec3 specularColor;
 uniform vec3 diffuseTint;
 
 const float shinyness = 75.;
-const float ambientStrength = .2;
+const float ambientStrength = .01;
 	
 vec3 GetNormal();
 vec4 GetDiffuseColor();
 //vec2 newTexCoord;
 bool flipRG = true;
 
+// Lights - mostly from: 
+// https://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Multiple_Lights
+// after moving away from single light source
+
+struct Light
+{
+  vec4 position;
+  vec4 diffuse;
+  vec4 specular;
+  float constantAttenuation, linearAttenuation, quadraticAttenuation;
+  float spotCutoff, spotExponent;
+  vec3 spotDirection;
+};
+
+const int numberOfLights = 3;
+Light lights[numberOfLights];
+
+// Spotlight 1 (glossy pool)
+Light light0 = Light(
+  vec4(0.0, 15.0, 10.0, 1.0),
+  vec4(2.0,  2.0,  2.0, 1.0),
+  vec4(1.0,  1.0,  1.0, 1.0),
+  0.01, 0.01, 0.001,
+  50.0, 15.0,
+  normalize(vec3(0.,-2., 25.) - vec3(0.0,15.0,10.0)));
+
+// Spotlight 2 (dried lake)
+Light light1 = Light(
+  vec4(0.0, 15.0, 10.0, 1.0),
+  vec4(1.0,  1.0,  1.0, 1.0),
+  vec4(2.0,  2.0,  2.0, 1.0),
+  .0, .0001, 0.001,
+  40.0, 30.0,
+  normalize(vec3(0.,-2.,-20.) - vec3(0.0,15.0,10.0)));  // norm(target - pos)
+
+// Directional (slightly red)
+Light light2 = Light(
+  vec4(0.0, 15.0, 10.0, 0.0),
+  vec4(0.1,  0.05,  0.05, 0.0),
+  vec4(0.2,  0.1,  0.1, 0.0),
+  .0, .0, .0,
+  0.0, 0.0,
+  normalize(vec3(0.,-1.,0.) - vec3(0.0,15.0,10.0)));  // norm(target - pos)
+
 void main() 
 {
-    //Sample the texture into textureColor.
-    //Then we mix it with our ambient, diffuse, and specular colors.
 	vec4 diffuse = GetDiffuseColor();
 	vec4 ambient = ambientStrength * diffuse;
+
+	vec3 totalLighting = ambient.xyz;
 
     vec4 specularcolor = vec4(specularColor,1.);
 	if (hasSpecularMapV == 1)
@@ -42,31 +91,96 @@ void main()
 	//Calculate the normal
     vec3 normal = GetNormal();
 	
-	vec3 lp = lightPos;
+	lights[0] = light0;
+	lights[1] = light1;
+	lights[2] = light2;
+//	vec3 lp = lightPos;
     vec3 vp = v;
 
-	//Move light direction and vertex direction to tangent space
+
+
+    vec3 viewDirection = normalize(-v); // (E) 
+
+	  for (int index = 0; index < numberOfLights; index++) // for all light sources
+    {
+		float attenuation;
+		vec3 lightDirection;
+      if (0.0 == lights[index].position.w) // directional light?
+	{
+	  attenuation = 1.0; // no attenuation
+	  lightDirection = normalize(vec3(lights[index].position));
+	} 
+      else // point light or spotlight (or other kind of light) 
+	{
+	
+
+	  vec3 positionToLight =  lights[index].position.xyz - v;
+	  float distance = length(positionToLight);
+	  lightDirection = normalize(positionToLight);
+	  attenuation = 1.0 / (lights[index].constantAttenuation
+			       + lights[index].linearAttenuation * distance
+			       + lights[index].quadraticAttenuation * distance * distance);
+	  
+	  if (lights[index].spotCutoff <= 90.0) // spotlight?
+	    {
+	      float clampedCosine = max(0.0, dot(-lightDirection, normalize(lights[index].spotDirection)));
+	      if (clampedCosine < cos(radians(lights[index].spotCutoff))) // outside of spotlight cone?
+		{
+		  attenuation = 0.0;
+		}
+	      else // point light
+		{
+		  attenuation = attenuation * pow(clampedCosine, lights[index].spotExponent);   
+		}
+	    }
+	}
+      
+      vec3 diffuseReflection = attenuation 
+	* vec3(lights[index].diffuse) * vec3(diffuse)
+	* max(0.0, dot(normal, lightDirection));
+      
+      vec3 specularReflection;
+      if (dot(normal, lightDirection) <= 0.0) // light source on the wrong side?
+	{
+	  specularReflection = vec3(0.0, 0.0, 0.0); // no specular reflection
+	}
+      else // light source on the right side
+	{
+	  specularReflection = attenuation * vec3(lights[index].specular) * specularColor.xyz 
+	    * pow(max(0.0, dot(reflect(-lightDirection, normal), viewDirection)), shinyness);
+	}
+
+      totalLighting += diffuseReflection + specularReflection;
+    }
+
+	fColor = vec4(totalLighting,1);
+	
+
+
+// Move light direction and vertex direction to tangent space
 //	lp = v_TBN * lightPos;
 //    vp = v_TBN * v;
 
     //Light direction and vertex directions.
-    vec3 L = normalize(lp - vp);
-    vec3 E = normalize(-vp);
+//    vec3 L = normalize(lp - vp);
+//	vec3 lightDirection = L;
+//	vec3 lightDirection;
 
     //****BLINN PHONG****//
-    float lambertian = max(dot(L,normal), 0.0);
-    float specular = 0.;
-
-    if(lambertian > 0.) {
-        vec3 halfDir = normalize(L + E);
-        float specAngle = max(dot(halfDir, normal), 0.);
-        specular = pow(specAngle, shinyness);
-    }
+//    float lambertian = max(dot(L,normal), 0.0);
+//    float specular = 0.;
+//
+//    if(lambertian > 0.) {
+//        vec3 halfDir = normalize(L + E);
+//        float specAngle = max(dot(halfDir, normal), 0.);
+//        specular = pow(specAngle, shinyness);
+//    }
     
     //Output final color
-	fColor = ambient + lambertian * diffuse + specular * specularcolor;
+//	fColor = ambient + lambertian * diffuse + specular * specularcolor;
 //	fColor = lambertian * diffuse;
 //	fColor = vec4((normal*.5)+.5,1.);
+
 }
 
 vec3 GetNormal()

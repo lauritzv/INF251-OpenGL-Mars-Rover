@@ -356,7 +356,7 @@ bool initModels() {
 	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);					// hose connected to arm2
 
 	CreateNode("models\\rover\\rover_static_metal.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm metal parts
-	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			// not yet correctly textured parts
+	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[12], identitymatrix, ShaderProgram0, rover_body_node);			// untextured dark grey parts
 	CreateNode("models\\rover\\rover_gratings.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);				// hopefully to be shaded with cutout material
 	CreateNode("models\\rover\\rover_body_flooring.obj", material_objects[2], identitymatrix, ShaderProgram0, rover_body_node);			// floor-textured rover bodyparts
 	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);					// wing/solar panel parts
@@ -373,7 +373,6 @@ bool initModels() {
 	skalleNode->SetOriginalPosition(Vector3f(-7.342f, 3.832f, -68.297f));
 	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram0, environment_surface_node);
 	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node);
-
 
 	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
@@ -431,9 +430,10 @@ bool initTextures()
 	material_objects.emplace_back("models\\aquarium\\terrain_sides-DiffM.png", defaultSpec);
 	// [10] akvariesider
 	material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
-	// [11] pure white
+	// [11] pure white (unlit)
 	material_objects.emplace_back(Vector3f(1.f,1.f,1.f));
-
+	// [12] dark grey (shaded)
+	material_objects.emplace_back(Vector3f(.1f, .1f, .1f), defaultSpec);
 
 	for (auto& el : material_objects)
 	{

@@ -28,8 +28,8 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	glUniformMatrix4fv(nmaULocation, 1, false, normalMatrix.get()); // <-- this normalization bool caused a lot of headache!!!
 																	// "true" made the lightsource rotate with the model!
 	// Set lightPositionMatrix
-	const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
-	glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
+	//const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
+	//glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
 	//const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
 	//assert(vmULocation != -1);

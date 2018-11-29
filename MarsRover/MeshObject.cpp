@@ -66,7 +66,7 @@ void MeshObject::DrawObjectCommonPost() const
 		reinterpret_cast<const GLvoid*>(8 * sizeof(float)) //offset by pos(3)+texcoord(2)+normals(3)
 	);
 
-	////bi-tangent
+	//bi-tangent
 	//glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE,
 	//	sizeof(ModelOBJ::Vertex),
 	//	reinterpret_cast<const GLvoid*>(12 * sizeof(float))
