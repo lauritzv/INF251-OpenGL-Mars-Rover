@@ -60,12 +60,6 @@
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MeshObject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MaterialObject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="spline\BSpline.h">
       <Filter>spline</Filter>
     </ClInclude>
@@ -91,6 +85,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StatusAlongSpline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,16 +4,14 @@ precision mediump float;
 
 in vec2 vTextureCoord;
 in vec3 v;
-//in vec3 lightPos;
 in mat3 v_TBN;
+flat in int hasDiffuseMapV;
+flat in int hasNormalMapV;
+flat in int hasSpecularMapV;
 
 uniform sampler2D diffSampler;
 uniform sampler2D normSampler;
 uniform sampler2D specSampler;
-
-flat in int hasDiffuseMapV;
-flat in int hasNormalMapV;
-flat in int hasSpecularMapV;
 
 out vec4 fColor;
 
@@ -22,13 +20,12 @@ uniform vec3 diffuseTint;
 uniform int viewMode;
 const float shinyness = 75.;
 const float ambientStrength = .1;
+bool flipRG = true;
 	
 vec3 GetNormal();
 vec4 GetDiffuseColor();
-//vec2 newTexCoord;
-bool flipRG = true;
 
-// Lights - mostly based on: 
+// Lights - partially based on: 
 // https://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Multiple_Lights
 // after moving away from single light source
 
@@ -68,19 +65,19 @@ Light light1 = Light(
 // Directional (slightly red)
 Light light2 = Light(
 	vec4(0.0, 15.0, 10.0, 0.0),
-	vec4(0.1,  0.05,  0.05, 0.0),
+	vec4(0.15,  0.1,  0.1, 0.0),
 	vec4(0.2,  0.1,  0.1, 0.0),
 	.0, .0, .0,
 	0.0, 0.0,
 	normalize(vec3(0.,-1.,0.) - vec3(0.0,15.0,10.0)));  // norm(target - pos)
 
-  // Point light
+  // Green point light below skull
   Light light3 = Light(
-	vec4(0.0, -15.0, -55.0, 1.0),
+	vec4(-8.0, -15.0, -65.0, 1.0),
 	vec4(1.0,  3.0,  1.0, 1.0),
 	vec4(1.0,  1.0,  1.0, 1.0),
 	0.01, 0.1, 0.005,
-	180.0, 15.0,
+	180.0, 0.0,
 	vec3(0.,0.,0.));
 
 void main() 
@@ -195,6 +192,7 @@ vec4 GetDiffuseColor()
 
 	
 
+// My previous setup:
 
 // Move light direction and vertex direction to tangent space
 //	lp = v_TBN * lightPos;

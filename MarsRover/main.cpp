@@ -357,10 +357,10 @@ void initSpline(const bool loop)
 	curve2->set_steps(100); // generate 100 interpolate points between the last 4 way points
 	curve2->loop = loop;
 
-	for (auto i = 0; i < drivingPath.size(); i++)
+	for (auto& i : drivingPath)
 	{
-		drivingPath[i].y -= 20.;
-		curve2->add_way_point(drivingPath[i]);
+		i.y -= 20.;
+		curve2->add_way_point(i);
 	}
 
 	if (loop)
@@ -369,8 +369,6 @@ void initSpline(const bool loop)
 		for (auto i = 0; i < 3; i++)
 			curve2->add_way_point(curve2->_way_points[i]);
 	}
-
-
 	//cout << "nodes: " << curve->node_count() << endl;
 	//cout << "total length: " << curve->total_length() << endl;
 }
@@ -662,24 +660,24 @@ void keyboard(unsigned char key, int x, int y) {
 	switch (tolower(key)) {
 		// --- camera movements ---
 	case 'w':
-		Cam.position += Cam.target * 0.1f;
+		Cam.position += Cam.target * 0.6f;
 		break;
 	case 'a':
 		right = Cam.target.cross(Cam.up);
-		Cam.position -= right * 0.1f;
+		Cam.position -= right * 0.6f;
 		break;
 	case 's':
-		Cam.position -= Cam.target * 0.1f;
+		Cam.position -= Cam.target * 0.6f;
 		break;
 	case 'd':
 		right = Cam.target.cross(Cam.up);
-		Cam.position += right * 0.1f;
+		Cam.position += right * 0.6f;
 		break;
 	case 'c':
-		Cam.position -= Cam.up * 0.1f;
+		Cam.position -= Cam.up * 0.6f;
 		break;
 	case ' ':
-		Cam.position += Cam.up * 0.1f;
+		Cam.position += Cam.up * 0.6f;
 		break;
 	case 'r': // Reset camera status
 		Cam.init();
@@ -767,8 +765,8 @@ void mouse(int button, int state, int x, int y) {
 void motion(int x, int y) {
 
 	if (MouseButton == GLUT_RIGHT_BUTTON) {
-		Cam.position += Cam.target * 0.003f * (MouseY - y);
-		Cam.position += Cam.target.cross(Cam.up) * 0.003f * (x - MouseX);
+		Cam.position += Cam.target * 0.01f * (MouseY - y);
+		Cam.position += Cam.target.cross(Cam.up) * 0.01f * (x - MouseX);
 	}
 	if (MouseButton == GLUT_MIDDLE_BUTTON) {
 		Cam.zoom = max(0.001f, Cam.zoom + 0.003f * (y - MouseY));

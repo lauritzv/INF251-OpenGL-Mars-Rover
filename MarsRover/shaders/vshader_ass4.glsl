@@ -19,13 +19,8 @@ uniform int hasDiffuseMap;
 uniform int hasNormalMap;
 uniform int hasSpecularMap;
 
-// point-light:
-//uniform mat4x4 lightPositionMat;
-//const vec4 lightPositionV = vec4(0.0,15.0,10.0,0.0);
-
 out vec2 vTextureCoord;
 out vec3 v; //vertex positison
-//out vec3 lightPos;
 out mat3 v_TBN;
 
 flat out int hasDiffuseMapV;
@@ -34,8 +29,7 @@ flat out int hasSpecularMapV;
 
 mat3 calculateTBN();
 
-//The vertex shader is very simple, and serves to pass most of the data
-//to the fragment shader.
+// The vertex shader mostly serves to pass data to the fragment shader.
 void main() 
 {
 	hasDiffuseMapV = hasDiffuseMap;
@@ -49,10 +43,6 @@ void main()
 
     vTextureCoord = aTexCoords;
     v = (transformation * vec4(aPos,1.)).xyz;
-//    lightPos = (v_TBN * lightPositionV.xyz);
-
-//	  LightDir = normalize( toObjectLocal * (Light.Position.xyz - pos) );
-//    ViewDir = toObjectLocal * normalize(-pos);
 
     gl_Position = projection * transformation * vec4(aPos,1.);
 }
