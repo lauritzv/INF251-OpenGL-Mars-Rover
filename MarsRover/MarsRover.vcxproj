@@ -163,17 +163,9 @@
     <ClCompile Include="spline\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\fshader.glsl" />
     <None Include="shaders\fshader_ass4.glsl" />
-    <None Include="shaders\shader.ass2.f.glsl" />
-    <None Include="shaders\shader.ass2.v.glsl" />
-    <None Include="shaders\shader.ass3attempt2.f.glsl" />
-    <None Include="shaders\shader.ass3attempt2.v.glsl" />
-    <None Include="shaders\shader.tutor6.f.glsl" />
-    <None Include="shaders\shader.tutor6.v.glsl" />
     <None Include="shaders\shader.unlitdiffuse.f.glsl" />
     <None Include="shaders\shader.unlitdiffuse.v.glsl" />
-    <None Include="shaders\vshader.glsl" />
     <None Include="shaders\vshader_ass4.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
