@@ -1,6 +1,5 @@
 ﻿#include "MeshObject.h"
 #include <iostream>
-#include "RenderProperties.h"
 
 /// change program and reset if needed, bind buffers and set transform and projection
 void MeshObject::DrawObjectCommonPre(Matrix4f & transf, RenderProperties& rp) const

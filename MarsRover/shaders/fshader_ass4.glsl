@@ -28,54 +28,64 @@ vec4 GetDiffuseColor();
 //vec2 newTexCoord;
 bool flipRG = true;
 
-// Lights - mostly from: 
+// Lights - mostly based on: 
 // https://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Multiple_Lights
 // after moving away from single light source
 
 struct Light
 {
-  vec4 position;
-  vec4 diffuse;
-  vec4 specular;
-  float constantAttenuation, linearAttenuation, quadraticAttenuation;
-  float spotCutoff, spotExponent;
-  vec3 spotDirection;
+	vec4 position;
+	vec4 diffuse;
+	vec4 specular;
+	float constantAttenuation, linearAttenuation, quadraticAttenuation;
+	float spotCutoff, spotExponent;
+	vec3 spotDirection;
 };
 
-const int numberOfLights = 3;
+const int numberOfLights = 4;
 Light lights[numberOfLights];
 
 // Spotlight 1 (glossy pool)
 Light light0 = Light(
-  vec4(0.0, 15.0, 10.0, 1.0),
-  vec4(2.0,  2.0,  2.0, 1.0),
-  vec4(1.0,  1.0,  1.0, 1.0),
-  0.01, 0.01, 0.001,
-  50.0, 15.0,
-  normalize(vec3(0.,-2., 25.) - vec3(0.0,15.0,10.0)));
+	vec4(0.0, 15.0, 10.0, 1.0),
+	vec4(2.0,  2.0,  2.0, 1.0),
+	vec4(1.0,  1.0,  1.0, 1.0),
+	0.01, 0.01, 0.001,
+	50.0, 15.0,
+	normalize(vec3(0.,-2., 25.) - vec3(0.0,15.0,10.0)));
 
 // Spotlight 2 (Rover headlight)
-  uniform vec3 headlightPos;
-  uniform vec3 headlightTarg;
+uniform vec3 headlightPos;
+uniform vec3 headlightTarg;
 Light light1 = Light(
-  vec4(headlightPos, 1.0),
-  vec4(1.0,  1.0,  1.0, 1.0),
-  vec4(2.0,  2.0,  2.0, 1.0),
-  .0, .0001, 0.001,
-  40.0, 30.0,
-  normalize(headlightTarg - headlightPos));  // norm(target - pos)
+	vec4(headlightPos, 1.0),
+	vec4(1.0,  1.0,  1.0, 1.0),
+	vec4(2.0,  2.0,  2.0, 1.0),
+	.0, .0001, 0.001,
+	40.0, 30.0,
+	normalize(headlightTarg - headlightPos));  // norm(target - pos)
 
 // Directional (slightly red)
 Light light2 = Light(
-  vec4(0.0, 15.0, 10.0, 0.0),
-  vec4(0.1,  0.05,  0.05, 0.0),
-  vec4(0.2,  0.1,  0.1, 0.0),
-  .0, .0, .0,
-  0.0, 0.0,
-  normalize(vec3(0.,-1.,0.) - vec3(0.0,15.0,10.0)));  // norm(target - pos)
+	vec4(0.0, 15.0, 10.0, 0.0),
+	vec4(0.1,  0.05,  0.05, 0.0),
+	vec4(0.2,  0.1,  0.1, 0.0),
+	.0, .0, .0,
+	0.0, 0.0,
+	normalize(vec3(0.,-1.,0.) - vec3(0.0,15.0,10.0)));  // norm(target - pos)
+
+  // Point light
+  Light light3 = Light(
+	vec4(0.0, -15.0, -55.0, 1.0),
+	vec4(1.0,  3.0,  1.0, 1.0),
+	vec4(1.0,  1.0,  1.0, 1.0),
+	0.01, 0.1, 0.005,
+	180.0, 15.0,
+	vec3(0.,0.,0.));
 
 void main() 
 {
+	// set pos and targ dir of rover headlight
 	light1.position = vec4(headlightPos,1.);
 	light1.spotDirection = normalize(headlightTarg - headlightPos);
 
@@ -94,6 +104,7 @@ void main()
 	lights[0] = light0;
 	lights[1] = light1;
 	lights[2] = light2;
+	lights[3] = light3;
     vec3 vp = v;
 
     vec3 viewDirection = normalize(-v); // (E) 
@@ -122,7 +133,7 @@ void main()
 
 			if (clampedCosine < cos(radians(lights[index].spotCutoff))) // outside of spotlight cone?
 				attenuation = 0.0;
-			else // point light
+			else
 				attenuation = attenuation * pow(clampedCosine, lights[index].spotExponent);   
 		}
 	}
@@ -144,17 +155,14 @@ void main()
       totalLighting += diffuseReflection + specularReflection;
     }
 
-	// last minute addition, reintroducing a few "channel"-views:
+
+	// last minute addition - reintroducing a few "channel"-views from the previous assignments:
 		switch(viewMode){
 			default: fColor = vec4(totalLighting,1.); break;
 			case 1: fColor = vec4(normal * .5 + .5, 1.); break;
 			case 2: fColor = diffuse; break;
 			case 3: fColor = ambient * diffuse; break;
 		}
-
-
-//	fColor = vec4(totalLighting,1);
-
 }
 
 vec3 GetNormal()

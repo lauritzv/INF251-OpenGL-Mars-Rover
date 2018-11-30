@@ -63,6 +63,5 @@ mat3 calculateTBN()
 	vec3 N = normalize(normalMatrix * aNormal); 
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 B = normalize(normalMatrix * (cross(aNormal, aTangent.xyz) * aTangent.w) );
-//	vec3 B = normalize(normalMatrix * (aBiTangent * aTangent.w));
 	return mat3(T,B,N);
 }

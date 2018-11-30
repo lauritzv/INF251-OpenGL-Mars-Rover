@@ -3,8 +3,7 @@
 #include "model_obj.h"
 #include "MaterialObject.h"
 #include "Matrix4.h"
-
-class RenderProperties;
+#include "RenderProperties.h"
 
 class MeshObject
 {

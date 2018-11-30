@@ -19,6 +19,7 @@
 #include "SceneNode.h"
 #include "MaterialObject.h"
 #include "RenderProperties.h"
+#include "StatusAlongSpline.h"
 
 using namespace std;
 
@@ -51,6 +52,7 @@ void initSpline(bool loop);
 shared_ptr<SceneNode> CreateNode(const char * model_path, MaterialObject &material,
 	const Matrix4f &transf_local, GLuint &shader_program, const shared_ptr<SceneNode> &parent);
 string readTextFile(const string&);
+void AnimateNodeAlongPath(const shared_ptr<SceneNode> node, StatusAlongSpline& status_tracker, const double delta_time);
 
 // --- Global variables ---------------------------------------------------------------------------
 
@@ -76,20 +78,13 @@ int MouseButton;		///< The last mouse button pressed or released
 // Toggled Mode
 bool wireframe = false;
 bool orthographic = false;
-//int viewMode = 0;
 
 // Camera
 Camera Cam;
 
-Vector3f pointLightPositions[] = {
-		Vector3f(0.7f,  0.2f,  2.0f),
-		Vector3f(2.3f, -3.3f, -4.0f),
-		Vector3f(-4.0f,  2.0f, -12.0f),
-		Vector3f(0.0f,  0.0f, -3.0f) };
-
 // Animation:
-bool animateScene = false;
-bool animateAlongPath = false;
+bool animateScene = true;
+bool animateAlongPath = true;
 chrono::high_resolution_clock::time_point previousFrameTime;
 Vector3f previousPosition;
 
@@ -97,13 +92,14 @@ Vector3f previousPosition;
 auto armCurlPhase = 0.;
 const auto armCurlRate = .001;
 const auto armCurlMagnitude = 25.;
+StatusAlongSpline rover_status;
+StatusAlongSpline crab_status;
+StatusAlongSpline turkey_status;
 
 // Curve stuff
 Curve* curve1;
 Curve* curve2;
-double position_along_path = 0.;
 int node_number = 0;
-Vector3f PositionAlongPath(const double &delta_time, const double &movespeed, Curve* curve);
 
 RenderProperties rp;
 
@@ -116,6 +112,8 @@ shared_ptr<SceneNode> rover_arm1;
 shared_ptr<SceneNode> rover_arm2;
 shared_ptr<SceneNode> rover_arm3;
 shared_ptr<SceneNode> skalleNode;
+shared_ptr<SceneNode> crabNode;
+shared_ptr<SceneNode> turkeyNode;
 
 vector<Vector> drivingPath = {
 	Vector(-8.439350, 3.449461, 45.063488),
@@ -157,8 +155,6 @@ vector<Vector> drivingPath = {
 // --- main() -------------------------------------------------------------------------------------
 /// The entry point of the application
 int main(int argc, char **argv) {
-	for (auto& el : drivingPath)
-		el.y -= 20.;
 
 	cout <<
 		'\n' << "CONTROLS:" <<
@@ -170,7 +166,7 @@ int main(int argc, char **argv) {
 		'\n' <<
 		'\n' << "r: resets camera" <<
 		'\n' << "p: toggle wireframe-mode" <<
-		'\n' << "t: toggle model rotation" <<
+		'\n' << "t: toggle all animation" <<
 		'\n' << "v: cycle between different fragment output modes" <<
 		'\n' << "l: reload shaders" <<
 		'\n' << "q: quit program" << endl;
@@ -212,9 +208,8 @@ int main(int argc, char **argv) {
 	RotationY = 0.0;
 	Scaling = 1.0f;
 
-	// init spline loop
+	// init spline loops
 	initSpline(true);
-	previousPosition = PositionAlongPath(0., 0.005, curve2);
 
 	// Shaders, Textures & buffers
 	if (!initShaders() || !initTextures() || !initModels())
@@ -223,6 +218,10 @@ int main(int argc, char **argv) {
 		getchar();
 		return -1;
 	}
+	rover_status = StatusAlongSpline(curve2, .015, 0., true);
+	crab_status = StatusAlongSpline(curve1, .01, 0., true);
+	turkey_status = StatusAlongSpline(curve2, .01, 10., true);
+	//previousPosition = PositionAlongPath(0., 0.005, curve2);
 
 	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
 
@@ -266,6 +265,38 @@ void display() {
 	glutSwapBuffers();
 }
 
+void AnimateNodeAlongPath(const shared_ptr<SceneNode> node, StatusAlongSpline& status_tracker, const double delta_time)
+{
+	float scaling = 1.f;
+	// Vector to (roughly) look along:
+	status_tracker.nextPos = status_tracker.PositionAlongPath(delta_time);
+	if (node == turkeyNode)
+	{
+		scaling = 3.f;
+		status_tracker.nextPos = Vector3f(status_tracker.nextPos.x(), status_tracker.nextPos.y() + 1.f, status_tracker.nextPos.z());
+	}
+	else if (node == rover_body_node)
+		scaling = 0.6f;
+
+	Vector3f targetDir = status_tracker.nextPos - status_tracker.currentPos;
+	Vector3f targetForwardVec = targetDir.getNormalized();
+
+
+	// find the angle about world-frame-z-axis
+	const float angleY = std::atan2(targetForwardVec.x(), targetForwardVec.z()) * 180. / PI;
+
+	// Transform node:
+	node->SetTransform(cm.create_transformation_matrix(status_tracker.currentPos, angleY, 0.f, scaling));
+
+	// Update headlight positions:
+	if (node == rover_body_node)
+	{
+		rp.headlightPos = status_tracker.currentPos;
+		rp.headlightTarg = status_tracker.nextPos;
+	}
+
+	status_tracker.currentPos = status_tracker.nextPos;
+}
 /// Called at regular intervals (can be used for animations)      (note: actually kind of irregular intervals...)
 void idle()
 {
@@ -290,55 +321,15 @@ void idle()
 		// Movement along BSpline
 		if (animateAlongPath)
 		{
-			// Vector to (roughly) look along:
-			Translation = PositionAlongPath(delta_time, .015, curve2);
-			Vector3f targetDir(Translation - previousPosition);
-			Vector3f targetForwardVec = targetDir.getNormalized();
-
-			// find the angle about world-frame-z-axis
-			const float angleY = std::atan2(targetForwardVec.x(), targetForwardVec.z()) * 180. / PI;
-
-			// Transform rover:
-			rover_body_node->SetTransform(cm.create_transformation_matrix(previousPosition, angleY, 0.f, .5f));
-
-			// Update headlight positions:
-			rp.headlightPos = previousPosition;
-			rp.headlightTarg = Translation;
-
-			previousPosition = Translation;
+			AnimateNodeAlongPath(rover_body_node, rover_status, delta_time);
+			AnimateNodeAlongPath(crabNode, crab_status, delta_time);
+			AnimateNodeAlongPath(turkeyNode, turkey_status, delta_time);
 		}
 		skalleNode->SetTransform(Matrix4f().createRotation(RotationY, dir.up));
 	}
 	previousFrameTime = time_now;
 
 	glutPostRedisplay();
-}
-
-Vector3f PositionAlongPath(const double &delta_time, const double &movespeed, Curve* curve)
-{
-	const int nodeCount = curve->node_count();
-	const double deltaMovement = delta_time * movespeed;
-	position_along_path += deltaMovement;
-
-	if (curve->loop) {
-		if (position_along_path > curve->total_length())
-			position_along_path -= curve->total_length();
-	}
-	else
-	{
-		position_along_path = min(position_along_path, curve->total_length() - 1);
-		animateAlongPath = false;
-	}
-
-	const auto position_rescaled = position_along_path / curve->total_length() * curve->node_count();
-	const auto node_number = static_cast<int>(position_rescaled);
-
-	// interpolate the position between the pre-interpolated positions:
-	const auto node_number_a_influence = position_rescaled - node_number;
-	const auto interpolatedPos = curve->getInterpolatedPosition(node_number_a_influence, node_number);
-
-	// from double Vector to Vector3f:
-	return Vector3f(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z);
 }
 
 // ************************************************************************************************
@@ -367,7 +358,10 @@ void initSpline(const bool loop)
 	curve2->loop = loop;
 
 	for (auto i = 0; i < drivingPath.size(); i++)
+	{
+		drivingPath[i].y -= 20.;
 		curve2->add_way_point(drivingPath[i]);
+	}
 
 	if (loop)
 	{
@@ -413,9 +407,9 @@ bool initModels() {
 
 	// diff / norm / spec mapped objects:
 
+	//Rover:
+
 	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);	// green shell - textured rover bodyparts
-
-
 	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		// lowest robotic arm joint
 	rover_arm0->SetOriginalPosition(Vector3f(0.f, 2.411f, 1.458f));																		// it's anchorpoint
 	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);
@@ -435,18 +429,25 @@ bool initModels() {
 	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);					// wing/solar panel parts
 	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm hoses
 
-	// environment:
+	// Environment:
 	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
 
 	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
 	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
+	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram0, environment_surface_node);
 
-	//// unlit objects:
+	// Skull
+
 	skalleNode = CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram0, root_node);
 	skalleNode->SetOriginalPosition(Vector3f(-7.342f, 3.832f, -68.297f));
-	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram0, environment_surface_node);
 	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node);
 
+	// Critters
+	crabNode = CreateNode("models\\critters\\crab.obj", material_objects[13], identitymatrix, ShaderProgram0, root_node);
+	CreateNode("models\\critters\\crab_eyes.obj", material_objects[13], identitymatrix, ShaderProgram1, crabNode);
+	crabNode->SetTransform(Matrix4f().createTranslation(Vector3f(drivingPath[30].x, drivingPath[30].y, drivingPath[30].z)));
+	turkeyNode = CreateNode("models\\critters\\turkey.obj", material_objects[14], identitymatrix, ShaderProgram0, root_node);
+	turkeyNode->SetTransform(Matrix4f().createTranslation(Vector3f(drivingPath[2].x, drivingPath[2].y, drivingPath[2].z)));
 	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	// double-check if all objects has been sucessfully imported
@@ -507,6 +508,16 @@ bool initTextures()
 	material_objects.emplace_back(Vector3f(1.f, 1.f, 1.f));
 	// [12] dark grey (shaded)
 	material_objects.emplace_back(Vector3f(.1f, .1f, .1f), defaultSpec);
+	// [13] Crab body
+	material_objects.emplace_back(
+		"models\\critters\\crab_diffuse.png",
+		"models\\critters\\crab_normals.png", defaultSpec);
+	// [14] Turkey body
+	material_objects.emplace_back(
+		"models\\critters\\rib_diffuse.png",
+		"models\\critters\\rib_normals.png", defaultSpec);
+
+
 
 	for (auto& el : material_objects)
 	{
