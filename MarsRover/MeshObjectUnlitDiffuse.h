@@ -6,7 +6,7 @@ class MeshObjectUnlitDiffuse :
 public:
 	MeshObjectUnlitDiffuse(const char* modelpath, MaterialObject& material_object, GLuint& sp);
 	~MeshObjectUnlitDiffuse();
-	void DrawObject(Matrix4f &transf, Matrix4f &projection) const override;
+	void DrawObject(Matrix4f &transf, RenderProperties& rp) const override;
 
 protected:
 	GLuint &TObjectDiff;

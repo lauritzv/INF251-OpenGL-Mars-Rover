@@ -1,5 +1,6 @@
 ﻿#include "SceneNode.h"
 #include <iostream>
+#include "RenderProperties.h"
 
 void SceneNode::Update() {
 	if (parent) // This node has a parent ...
@@ -12,15 +13,15 @@ void SceneNode::Update() {
 		i->Update();
 }
 
-void SceneNode::Draw(Matrix4f &projection) const
+void SceneNode::Draw(RenderProperties& rp) const
 {
 	for (auto& el : children)
-		el->Draw(projection);
+		el->Draw(rp);
 
 	if (mesh == nullptr)
 		return;
 
-	mesh->DrawObject(GetWorldTransform(), projection);
+	mesh->DrawObject(GetWorldTransform(), rp);
 }
 
 SceneNode::~SceneNode() = default;

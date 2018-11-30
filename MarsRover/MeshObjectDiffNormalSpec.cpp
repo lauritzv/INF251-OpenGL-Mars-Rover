@@ -1,6 +1,7 @@
 #include "MeshObjectDiffNormalSpec.h"
 #include <cassert>
 #include "Matrix4.h"
+#include "RenderProperties.h"
 
 MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, MaterialObject& material_object, GLuint &sp) :
 	MeshObject(modelpath, sp),
@@ -16,10 +17,10 @@ MeshObjectDiffNormalSpec::MeshObjectDiffNormalSpec(const char * modelpath, Mater
 MeshObjectDiffNormalSpec::~MeshObjectDiffNormalSpec()
 = default;
 
-void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection) const
+void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, RenderProperties& rp) const
 {
 	// change program and reset if needed, bind buffers and set transform and projection
-	DrawObjectCommonPre(transf, projection);
+	DrawObjectCommonPre(transf, rp);
 
 	// set shader-specific uniforms:
 
@@ -31,9 +32,9 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	//const GLint lpULocation = glGetUniformLocation(shader_program, "lightPositionMat");
 	//glUniformMatrix4fv(lpULocation, 1, false, Matrix4f().get()); //identity matrix
 
-	//const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
+	const GLint vmULocation = glGetUniformLocation(shader_program, "viewMode");
 	//assert(vmULocation != -1);
-	//glUniform1i(vmULocation, 0);
+	glUniform1i(vmULocation, rp.viewMode);
 
 	// tell the shader which T.U. to use
 	GLint const diffSamplerULocation = glGetUniformLocation(shader_program, "diffSampler");
@@ -42,6 +43,8 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	glUniform1i(normSamplerULocation, 1);
 	GLint const specSamplerULocation = glGetUniformLocation(shader_program, "specSampler");
 	glUniform1i(specSamplerULocation, 2);
+
+
 
 	// set the active uniforms and texture units
 
@@ -75,9 +78,6 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	}
 	else glUniform1i(hasSpecularULocation, 0);
 
-	//uniform vec3 specularColor;
-	//uniform vec3 diffuseTint = vec3(1., 1., 1.);
-
 	const GLint specColorULocation = glGetUniformLocation(shader_program, "specularColor");
 	//assert(specColorULocation != -1);
 	glUniform3fv(specColorULocation, 1, specColor.get());
@@ -85,6 +85,15 @@ void MeshObjectDiffNormalSpec::DrawObject(Matrix4f &transf, Matrix4f &projection
 	const GLint tintULocation = glGetUniformLocation(shader_program, "diffuseTint");
 	//assert(tintULocation != -1);
 	glUniform3fv(tintULocation, 1, tint.get());
+
+	const GLint roverHeadLightPosULocation = glGetUniformLocation(shader_program, "headlightPos");
+	//assert(roverHeadLightPosULocation != -1);
+	glUniform3fv(roverHeadLightPosULocation, 1, rp.headlightPos.get());
+
+	const GLint roverHeadLightTargULocation = glGetUniformLocation(shader_program, "headlightTarg");
+	//assert(roverHeadLightTargULocation != -1);
+	glUniform3fv(roverHeadLightTargULocation, 1, rp.headlightTarg.get());
+
 
 	// set the active texture units
 

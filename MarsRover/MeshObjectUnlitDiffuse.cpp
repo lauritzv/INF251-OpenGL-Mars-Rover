@@ -12,10 +12,10 @@ MeshObjectUnlitDiffuse::MeshObjectUnlitDiffuse(const char * modelpath, MaterialO
 MeshObjectUnlitDiffuse::~MeshObjectUnlitDiffuse()
 = default;
 
-void MeshObjectUnlitDiffuse::DrawObject(Matrix4f &transf, Matrix4f &projection) const
+void MeshObjectUnlitDiffuse::DrawObject(Matrix4f &transf, RenderProperties& rp) const
 {
 	// change program and reset if needed, bind buffers and set transform and projection
-	DrawObjectCommonPre(transf, projection);
+	DrawObjectCommonPre(transf, rp);
 
 	const GLint hasDiffULocation = glGetUniformLocation(shader_program, "has_diffuse_map");
 	assert(hasDiffULocation != -1);

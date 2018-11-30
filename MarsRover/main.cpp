@@ -18,10 +18,11 @@
 #include "MeshObjectUnlitDiffuse.h"
 #include "SceneNode.h"
 #include "MaterialObject.h"
+#include "RenderProperties.h"
 
 using namespace std;
 
-// run on gpu
+// dont try to run this on integrated when dedicated gpu is present:
 extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
 
 // Constants:
@@ -65,7 +66,6 @@ Vector3f Translation;	///< Translation
 float RotationX;
 float RotationY;
 float Scaling;			///< Scaling
-Matrix4<float> projection;
 //Matrix4<float> transformation;
 create_matrix cm;
 
@@ -76,23 +76,22 @@ int MouseButton;		///< The last mouse button pressed or released
 // Toggled Mode
 bool wireframe = false;
 bool orthographic = false;
-int viewMode = 0;
+//int viewMode = 0;
 
 // Camera
 Camera Cam;
 
-// Lighting
 Vector3f pointLightPositions[] = {
 		Vector3f(0.7f,  0.2f,  2.0f),
 		Vector3f(2.3f, -3.3f, -4.0f),
 		Vector3f(-4.0f,  2.0f, -12.0f),
 		Vector3f(0.0f,  0.0f, -3.0f) };
 
-
 // Animation:
 bool animateScene = false;
 bool animateAlongPath = false;
 chrono::high_resolution_clock::time_point previousFrameTime;
+Vector3f previousPosition;
 
 // Arm-animation variables:
 auto armCurlPhase = 0.;
@@ -100,10 +99,13 @@ const auto armCurlRate = .001;
 const auto armCurlMagnitude = 25.;
 
 // Curve stuff
-Curve* curve;
+Curve* curve1;
+Curve* curve2;
 double position_along_path = 0.;
 int node_number = 0;
-Vector3f PositionAlongPath(const double &delta_time, const double &movespeed);
+Vector3f PositionAlongPath(const double &delta_time, const double &movespeed, Curve* curve);
+
+RenderProperties rp;
 
 // Scene graph nodes:
 vector<shared_ptr<SceneNode>> scene_nodes;
@@ -115,9 +117,48 @@ shared_ptr<SceneNode> rover_arm2;
 shared_ptr<SceneNode> rover_arm3;
 shared_ptr<SceneNode> skalleNode;
 
+vector<Vector> drivingPath = {
+	Vector(-8.439350, 3.449461, 45.063488),
+	Vector(-1.709618, 3.459423, 48.568810),
+	Vector(10.302758, 3.582274, 44.993031),
+	Vector(15.844583, 3.441296, 33.202038),
+	Vector(11.606320, 3.118898, 23.191719),
+	Vector(5.022096, 3.461100, 19.095032),
+	Vector(3.198251, 3.176355, 13.176377),
+	Vector(3.128300, 4.667252, 6.977981),
+	Vector(2.822759, 3.893970, 2.242125),
+	Vector(-0.177380, 3.789032, -3.361046),
+	Vector(-5.534006, 3.876651, -7.364618),
+	Vector(-9.481770, 4.585526, -11.471276),
+	Vector(-10.560960, 4.246844, -18.517252),
+	Vector(-5.034374, 3.636016, -22.466015),
+	Vector(-7.939851, 3.514133, -31.020798),
+	Vector(-10.451312, 2.509178, -39.960197),
+	Vector(-14.232109, 3.890318, -43.776855),
+	Vector(-19.722017, 3.571841, -48.134884),
+	Vector(-24.154518, 3.658528, -35.146729),
+	Vector(-28.310436, 2.448910, -28.242565),
+	Vector(-30.969486, 3.896465, -23.847034),
+	Vector(-27.618633, 3.837166, -16.925678),
+	Vector(-26.315708, 3.513259, -7.636176),
+	Vector(-26.663029, 4.138025, 0.011560),
+	Vector(-27.021679, 3.593137, 2.636469),
+	Vector(-24.118446, 2.685185, 5.008548),
+	Vector(-21.951691, 3.109931, 10.251927),
+	Vector(-22.324062, 3.137298, 16.368187),
+	Vector(-19.562836, 3.475727, 21.286095),
+	Vector(-15.312723, 3.582770, 23.948009),
+	Vector(-13.826504, 3.579750, 26.013424),
+	Vector(-15.483941, 2.721869, 30.595165),
+	Vector(-16.383221, 2.856341, 35.846809),
+	Vector(-14.489773, 3.894205, 39.533146)
+};
+
 // --- main() -------------------------------------------------------------------------------------
 /// The entry point of the application
 int main(int argc, char **argv) {
+	for (auto& el : drivingPath)
+		el.y -= 20.;
 
 	cout <<
 		'\n' << "CONTROLS:" <<
@@ -173,6 +214,7 @@ int main(int argc, char **argv) {
 
 	// init spline loop
 	initSpline(true);
+	previousPosition = PositionAlongPath(0., 0.005, curve2);
 
 	// Shaders, Textures & buffers
 	if (!initShaders() || !initTextures() || !initModels())
@@ -202,7 +244,7 @@ void display() {
 
 	// Calculate camera projection and set window aspect ratio
 	Cam.ar = static_cast<float>(glutGet(GLUT_WINDOW_WIDTH)) / static_cast<float>(glutGet(GLUT_WINDOW_HEIGHT));
-	projection = Cam.computeCameraTransform();
+	rp.projection = Cam.computeCameraTransform();
 
 	// Enable the vertex attributes and set their format
 	glEnableVertexAttribArray(0); //pos
@@ -210,7 +252,7 @@ void display() {
 	glEnableVertexAttribArray(2); //normals
 
 	//Trigger drawing of scene from scenegraph root
-	root_node->Draw(projection);
+	root_node->Draw(rp);
 
 	//cleanup VAOs
 	glDisableVertexAttribArray(0);
@@ -237,8 +279,9 @@ void idle()
 		const auto rotationSpeed = .1;
 		RotationX += rotationSpeed * delta_time;
 		RotationY += rotationSpeed * delta_time;
+
+		// Robot arm animation
 		armCurlPhase += armCurlRate * delta_time;
-		//auto armRotation = cm.create_transformation_matrix(Vector3f(0.f, 0.f, 0.f), 0.f, -RotationY, 1.f);
 		const auto armCurlAngle = armCurlMagnitude * sin(2 * PI * armCurlPhase);
 		rover_arm0->SetTransform(Matrix4f().createRotation(armCurlAngle + 15.f, dir.right));
 		rover_arm1->SetTransform(Matrix4f().createRotation(armCurlAngle - 40.f, dir.right));
@@ -246,9 +289,24 @@ void idle()
 
 		// Movement along BSpline
 		if (animateAlongPath)
-			Translation = PositionAlongPath(delta_time, .005);
+		{
+			// Vector to (roughly) look along:
+			Translation = PositionAlongPath(delta_time, .015, curve2);
+			Vector3f targetDir(Translation - previousPosition);
+			Vector3f targetForwardVec = targetDir.getNormalized();
 
-		rover_body_node->SetTransform(cm.create_transformation_matrix(Translation, RotationX, 0.f, Scaling));
+			// find the angle about world-frame-z-axis
+			const float angleY = std::atan2(targetForwardVec.x(), targetForwardVec.z()) * 180. / PI;
+
+			// Transform rover:
+			rover_body_node->SetTransform(cm.create_transformation_matrix(previousPosition, angleY, 0.f, .5f));
+
+			// Update headlight positions:
+			rp.headlightPos = previousPosition;
+			rp.headlightTarg = Translation;
+
+			previousPosition = Translation;
+		}
 		skalleNode->SetTransform(Matrix4f().createRotation(RotationY, dir.up));
 	}
 	previousFrameTime = time_now;
@@ -256,7 +314,7 @@ void idle()
 	glutPostRedisplay();
 }
 
-Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
+Vector3f PositionAlongPath(const double &delta_time, const double &movespeed, Curve* curve)
 {
 	const int nodeCount = curve->node_count();
 	const double deltaMovement = delta_time * movespeed;
@@ -288,21 +346,36 @@ Vector3f PositionAlongPath(const double &delta_time, const double &movespeed)
 
 void initSpline(const bool loop)
 {
-	curve = new BSpline();
-	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
-	curve->loop = loop;
+	curve1 = new BSpline();
+	curve1->set_steps(100); // generate 100 interpolate points between the last 4 way points
+	curve1->loop = loop;
 
 	//control points:
-	curve->add_way_point(Vector(-6, -2, -16));
-	curve->add_way_point(Vector(-6, -2, -8));
-	curve->add_way_point(Vector(6, -2, -8));
-	curve->add_way_point(Vector(6, -2, -16));
+	curve1->add_way_point(Vector(-6, -2, -16));
+	curve1->add_way_point(Vector(-6, -2, -8));
+	curve1->add_way_point(Vector(6, -2, -8));
+	curve1->add_way_point(Vector(6, -2, -16));
 	if (loop)
 	{
 		//first 3 points added again for looping BSpline
 		for (auto i = 0; i < 3; i++)
-			curve->add_way_point(curve->_way_points[i]);
+			curve1->add_way_point(curve1->_way_points[i]);
 	}
+
+	curve2 = new BSpline();
+	curve2->set_steps(100); // generate 100 interpolate points between the last 4 way points
+	curve2->loop = loop;
+
+	for (auto i = 0; i < drivingPath.size(); i++)
+		curve2->add_way_point(drivingPath[i]);
+
+	if (loop)
+	{
+		//first 3 points added again for looping BSpline
+		for (auto i = 0; i < 3; i++)
+			curve2->add_way_point(curve2->_way_points[i]);
+	}
+
 
 	//cout << "nodes: " << curve->node_count() << endl;
 	//cout << "total length: " << curve->total_length() << endl;
@@ -431,7 +504,7 @@ bool initTextures()
 	// [10] akvariesider
 	material_objects.emplace_back("models\\aquarium\\akvarie_opac.png");
 	// [11] pure white (unlit)
-	material_objects.emplace_back(Vector3f(1.f,1.f,1.f));
+	material_objects.emplace_back(Vector3f(1.f, 1.f, 1.f));
 	// [12] dark grey (shaded)
 	material_objects.emplace_back(Vector3f(.1f, .1f, .1f), defaultSpec);
 
@@ -626,7 +699,14 @@ void keyboard(unsigned char key, int x, int y) {
 		}
 		break;
 	case 'v':
-		viewMode = (viewMode++) % 6;
+		rp.viewMode = (rp.viewMode++) % 4;
+		switch (rp.viewMode)
+		{
+		default: cout << "totalLighting" << endl; break;
+		case 1: cout << "normals" << endl; break;
+		case 2: cout << "colors" << endl; break;
+		case 3: cout << "ambient" << endl; break;
+		}
 		break;
 	case 'q':  // terminate the application
 		exit(0);

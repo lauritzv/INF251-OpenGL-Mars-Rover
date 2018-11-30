@@ -1,8 +1,9 @@
 ﻿#include "MeshObject.h"
 #include <iostream>
+#include "RenderProperties.h"
 
 /// change program and reset if needed, bind buffers and set transform and projection
-void MeshObject::DrawObjectCommonPre(Matrix4f & transf, Matrix4f & projection) const
+void MeshObject::DrawObjectCommonPre(Matrix4f & transf, RenderProperties& rp) const
 {
 	GLint current_program;
 	glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
@@ -16,7 +17,7 @@ void MeshObject::DrawObjectCommonPre(Matrix4f & transf, Matrix4f & projection) c
 	// Set projection
 	const GLint prULocation = glGetUniformLocation(shader_program, "projection");
 	assert(prULocation != -1);
-	glUniformMatrix4fv(prULocation, 1, false, projection.get());
+	glUniformMatrix4fv(prULocation, 1, false, rp.projection.get());
 
 	// Set transformations
 	const GLint trULocation = glGetUniformLocation(shader_program, "transformation");

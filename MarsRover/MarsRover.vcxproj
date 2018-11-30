@@ -139,6 +139,7 @@
     <ClInclude Include="MeshObjectDiffNormalSpec.h" />
     <ClInclude Include="MeshObjectUnlitDiffuse.h" />
     <ClInclude Include="model_obj.h" />
+    <ClInclude Include="RenderProperties.h" />
     <ClInclude Include="SceneNode.h" />
     <ClInclude Include="spline\BSpline.h" />
     <ClInclude Include="spline\Curve.h" />

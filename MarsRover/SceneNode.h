@@ -3,6 +3,7 @@
 #include "Vector3.h"
 #include "Matrix4.h"
 #include "MeshObject.h"
+#include "RenderProperties.h"
 
 class SceneNode :public std::enable_shared_from_this<SceneNode> {
 
@@ -37,5 +38,5 @@ public:
 	void AddChild(const std::shared_ptr<SceneNode>& s);
 	bool SuccessfullyImported() const;
 	void Update();
-	void Draw(Matrix4f &projection) const;
+	void Draw(RenderProperties &rp) const;
 };

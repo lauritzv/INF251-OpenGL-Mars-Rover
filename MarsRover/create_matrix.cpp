@@ -9,6 +9,14 @@ Matrix4<float> create_matrix::create_transformation_matrix(const Vector3<float>&
 	return translation_mat * rotation_y_mat * rotation_x_mat * scaling_mat;
 }
 
+Matrix4<float> create_matrix::create_transformation_matrix(const Vector3<float>& Translation, const Matrix4f& rotation, const float& Scaling) const
+{
+	const auto translation_mat = Matrix4<float>().createTranslation(Translation);  // NOLINT
+	const auto scaling_mat = Matrix4<float>().createScaling(Scaling, Scaling, Scaling); // NOLINT
+
+	return translation_mat * (rotation * scaling_mat);
+}
+
 //Matrix4<float> create_matrix::create_projection(const bool& orthographic, const float& aspect_ratio) const
 //{
 //	Matrix4<float> ret;

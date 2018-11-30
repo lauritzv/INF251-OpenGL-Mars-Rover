@@ -7,6 +7,7 @@
 #include "Vector3.h"
 #include <ostream>
 
+
 namespace __hidden__ {
 	/// the PI constant
 	const long double PI = std::atan2l(0., -1.);
