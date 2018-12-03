@@ -4,7 +4,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoords;
 layout (location = 2) in vec3 aNormal;
-layout (location = 3) in vec4 aTangent;
+layout (location = 3) in vec4 aTangent; // These are currently not being passed correctly
 //layout (location = 4) in vec3 aBiTangent;
 
 // transformation and projection matrix to apply to vertices

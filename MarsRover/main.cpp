@@ -246,6 +246,7 @@ void display() {
 	glEnableVertexAttribArray(0); //pos
 	glEnableVertexAttribArray(1); //uv-coord
 	glEnableVertexAttribArray(2); //normals
+	//glEnableVertexAttribArray(3); //  do these even exist?
 
 	//Trigger drawing of scene from scenegraph root
 	root_node->Draw(rp);
@@ -254,6 +255,7 @@ void display() {
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
+	//glDisableVertexAttribArray(3);
 
 	// Disable the shader program (not necessary but recommended)
 	glUseProgram(0);
@@ -356,7 +358,7 @@ void initSpline(const bool loop)
 
 	for (auto& i : drivingPath)
 	{
-		i.y -= 20.;
+		i.y -= 20.; // offset positions by -20m
 		curve2->add_way_point(i);
 	}
 
@@ -366,6 +368,7 @@ void initSpline(const bool loop)
 		for (auto i = 0; i < 3; i++)
 			curve2->add_way_point(curve2->_way_points[i]);
 	}
+
 	//cout << "nodes: " << curve->node_count() << endl;
 	//cout << "total length: " << curve->total_length() << endl;
 }

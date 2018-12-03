@@ -25,10 +25,10 @@ void BSpline::_on_way_point_added()
 	}
 }
 
-Vector BSpline::interpolate(double u, const Vector& P0, const Vector& P1, const Vector& P2, const Vector& P3)
+Vector BSpline::interpolate(double u, const Vector& P0,
+	const Vector& P1, const Vector& P2, const Vector& P3)
 {
-	Vector point;
-	point=u*u*u*((-1) * P0 + 3 * P1 - 3 * P2 + P3) / 6;
+	Vector point = u * u * u * ((-1) * P0 + 3 * P1 - 3 * P2 + P3) / 6;
 	point+=u*u*(3*P0 - 6 * P1+ 3 * P2) / 6;
 	point+=u*((-3) * P0 + 3 * P2) / 6;
 	point+=(P0+4*P1+P2) / 6;
@@ -36,8 +36,8 @@ Vector BSpline::interpolate(double u, const Vector& P0, const Vector& P1, const 
 	return point;
 }
 
-Vector BSpline::getInterpolatedPosition(const double u, int const node0index)
-{
+Vector BSpline::getInterpolatedPosition
+	(const double u, int const node0index) {
 	if (loop)
 	{
 		return interpolate(u,

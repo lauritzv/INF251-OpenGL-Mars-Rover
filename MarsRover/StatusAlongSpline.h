@@ -27,8 +27,7 @@ public:
 		position_along_path = phaseOffset;
 	}
 
-	Vector3f PositionAlongPath(const double &delta_time)
-	{
+	Vector3f PositionAlongPath(const double &delta_time) {
 		const int nodeCount = curve->node_count();
 		const double deltaMovement = delta_time * movespeed;
 		position_along_path += deltaMovement;
@@ -37,10 +36,7 @@ public:
 			if (position_along_path > curve->total_length())
 				position_along_path -= curve->total_length();
 		}
-		else
-		{
-			position_along_path = std::min(position_along_path, curve->total_length() - 1);
-		}
+		else position_along_path = std::min(position_along_path, curve->total_length() - 1);
 
 		const auto position_rescaled = position_along_path / curve->total_length() * curve->node_count();
 		const auto node_number = static_cast<int>(position_rescaled);
