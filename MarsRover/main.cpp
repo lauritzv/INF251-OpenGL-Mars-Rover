@@ -67,8 +67,6 @@ vector<MaterialObject> material_objects;
 Vector3f Translation;	///< Translation
 float RotationX;
 float RotationY;
-float Scaling;			///< Scaling
-//Matrix4<float> transformation;
 create_matrix cm;
 
 // Mouse interactions
@@ -206,7 +204,6 @@ int main(int argc, char **argv) {
 	Translation.set(0.0f, -2.0f, -10.0f);
 	RotationX = 0.0;
 	RotationY = 0.0;
-	Scaling = 1.0f;
 
 	// init spline loops
 	initSpline(true);
@@ -427,8 +424,10 @@ bool initModels() {
 	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);					// wing/solar panel parts
 	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm hoses
 
-	// Environment:
+	// Environment: (sky-sphere, unlit shading)
 	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
+	// Spotlight source indicator:
+	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
 	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
@@ -443,10 +442,9 @@ bool initModels() {
 	// Critters
 	crabNode = CreateNode("models\\critters\\crab.obj", material_objects[13], identitymatrix, ShaderProgram0, root_node);
 	CreateNode("models\\critters\\crab_eyes.obj", material_objects[13], identitymatrix, ShaderProgram1, crabNode);
-	crabNode->SetTransform(Matrix4f().createTranslation(Vector3f(drivingPath[30].x, drivingPath[30].y, drivingPath[30].z)));
+	//crabNode->SetTransform(Matrix4f().createTranslation(Vector3f(drivingPath[30].x, drivingPath[30].y, drivingPath[30].z)));
 	turkeyNode = CreateNode("models\\critters\\turkey.obj", material_objects[14], identitymatrix, ShaderProgram0, root_node);
 	turkeyNode->SetTransform(Matrix4f().createTranslation(Vector3f(drivingPath[2].x, drivingPath[2].y, drivingPath[2].z)));
-	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	// double-check if all objects has been sucessfully imported
 	for (auto& el : scene_nodes)
@@ -464,7 +462,7 @@ bool initTextures()
 	// [0] grimy green rover body shell textures
 	material_objects.emplace_back(
 		"models\\rover\\shell_body_diff.png",
-		"models\\rover\\crystalshell_norm.png",
+		"models\\rover\\crystalshell_norm2.png",
 		"models\\rover\\crystalshell_ao.png", defaultSpec);
 	// [1] rust textures
 	material_objects.emplace_back(
@@ -479,7 +477,7 @@ bool initTextures()
 	// [3] wing (solar panel) textures
 	material_objects.emplace_back(
 		"models\\rover\\wings_diff.png",
-		"models\\rover\\wings_norm.png",
+		"models\\rover\\wings_norm2.png",
 		"models\\rover\\wings_spec.png", defaultSpec);
 	// [4] grimy red hose textures
 	material_objects.emplace_back(
