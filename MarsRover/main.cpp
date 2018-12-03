@@ -75,29 +75,26 @@ int MouseButton;		///< The last mouse button pressed or released
 
 // Toggled Mode
 bool wireframe = false;
-bool orthographic = false;
 
 // Camera
 Camera Cam;
 
 // Animation:
 bool animateScene = true;
-bool animateAlongPath = true;
 chrono::high_resolution_clock::time_point previousFrameTime;
-Vector3f previousPosition;
 
 // Arm-animation variables:
 auto armCurlPhase = 0.;
 const auto armCurlRate = .001;
 const auto armCurlMagnitude = 25.;
+
+// Curve animation
+bool animateAlongPath = true;
+Curve* curve1;
+Curve* curve2;
 StatusAlongSpline rover_status;
 StatusAlongSpline crab_status;
 StatusAlongSpline turkey_status;
-
-// Curve stuff
-Curve* curve1;
-Curve* curve2;
-int node_number = 0;
 
 RenderProperties rp;
 
@@ -218,7 +215,6 @@ int main(int argc, char **argv) {
 	rover_status = StatusAlongSpline(curve2, .015, 0., true);
 	crab_status = StatusAlongSpline(curve1, .01, 0., true);
 	turkey_status = StatusAlongSpline(curve2, .01, 10., true);
-	//previousPosition = PositionAlongPath(0., 0.005, curve2);
 
 	glutSetCursor(GLUT_CURSOR_CROSSHAIR); // hide the cursor
 
@@ -235,6 +231,9 @@ int main(int argc, char **argv) {
 // *** OpenGL callbacks implementation ************************************************************
 /// Called whenever the scene has to be drawn
 void display() {
+
+	//TODO: setup multipass rendering for opacity-mapping and shadowmapping
+
 	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -272,14 +271,13 @@ void AnimateNodeAlongPath(const shared_ptr<SceneNode> node, StatusAlongSpline& s
 	if (node == turkeyNode)
 	{
 		scaling = 3.f;
-		status_tracker.nextPos = Vector3f(status_tracker.nextPos.x(), status_tracker.nextPos.y() + 1.f, status_tracker.nextPos.z());
+		status_tracker.nextPos = Vector3f(status_tracker.nextPos.x(), status_tracker.nextPos.y() + 1.f, status_tracker.nextPos.z()); // offset turkey martian pos 1m up
 	}
 	else if (node == rover_body_node)
 		scaling = 0.6f;
 
 	Vector3f targetDir = status_tracker.nextPos - status_tracker.currentPos;
 	Vector3f targetForwardVec = targetDir.getNormalized();
-
 
 	// find the angle about world-frame-z-axis
 	const float angleY = std::atan2(targetForwardVec.x(), targetForwardVec.z()) * 180. / PI;
@@ -336,6 +334,7 @@ void idle()
 
 void initSpline(const bool loop)
 {
+	// Small loop above center of terrain:
 	curve1 = new BSpline();
 	curve1->set_steps(100); // generate 100 interpolate points between the last 4 way points
 	curve1->loop = loop;
@@ -352,6 +351,7 @@ void initSpline(const bool loop)
 			curve1->add_way_point(curve1->_way_points[i]);
 	}
 
+	// The driving path loop:
 	curve2 = new BSpline();
 	curve2->set_steps(100); // generate 100 interpolate points between the last 4 way points
 	curve2->loop = loop;
@@ -368,9 +368,6 @@ void initSpline(const bool loop)
 		for (auto i = 0; i < 3; i++)
 			curve2->add_way_point(curve2->_way_points[i]);
 	}
-
-	//cout << "nodes: " << curve->node_count() << endl;
-	//cout << "total length: " << curve->total_length() << endl;
 }
 
 /// creates a SceneNode, attach mesh, program and textures to it and add it to scene_nodes
@@ -407,18 +404,7 @@ bool initModels() {
 
 	//Rover:
 
-	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);	// green shell - textured rover bodyparts
-	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		// lowest robotic arm joint
-	rover_arm0->SetOriginalPosition(Vector3f(0.f, 2.411f, 1.458f));																		// it's anchorpoint
-	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);
-	rover_arm1->SetOriginalPosition(Vector3f(0.f, 4.643f, 0.588f));
-	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);
-	rover_arm2->SetOriginalPosition(Vector3f(0.f, 5.395f, 3.158f));
-	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			// outermost robotic arm joint
-	rover_arm3->SetOriginalPosition(Vector3f(0.f, 5.226f, 5.594f));
-
-	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);					// hose connected to arm1
-	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);					// hose connected to arm2
+	rover_body_node = CreateNode("models\\rover\\rover_body_shell.obj", material_objects[0], identitymatrix, ShaderProgram0, root_node);// green shell - textured rover bodyparts
 
 	CreateNode("models\\rover\\rover_static_metal.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm metal parts
 	CreateNode("models\\rover\\rover_temp_parts.obj", material_objects[12], identitymatrix, ShaderProgram0, rover_body_node);			// untextured dark grey parts
@@ -427,20 +413,35 @@ bool initModels() {
 	CreateNode("models\\rover\\rover_wings.obj", material_objects[3], identitymatrix, ShaderProgram0, rover_body_node);					// wing/solar panel parts
 	CreateNode("models\\rover\\rover_static_hoses.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_body_node);			// non-arm hoses
 
+	// Rover arm:
+	rover_arm0 = CreateNode("models\\rover\\rover_arm0.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_body_node);		// lowest robotic arm joint
+	rover_arm0->SetOriginalPosition(Vector3f(0.f, 2.411f, 1.458f));																		// it's anchorpoint
+	rover_arm1 = CreateNode("models\\rover\\rover_arm1.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm0);
+	rover_arm1->SetOriginalPosition(Vector3f(0.f, 4.643f, 0.588f));
+	rover_arm2 = CreateNode("models\\rover\\rover_arm2.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm1);
+	rover_arm2->SetOriginalPosition(Vector3f(0.f, 5.395f, 3.158f));
+	rover_arm3 = CreateNode("models\\rover\\rover_arm3.obj", material_objects[1], identitymatrix, ShaderProgram0, rover_arm2);			// outermost robotic arm joint
+	rover_arm3->SetOriginalPosition(Vector3f(0.f, 5.226f, 5.594f));
+	CreateNode("models\\rover\\rover_arm1_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm1);					// hose connected to arm1
+	CreateNode("models\\rover\\rover_arm2_hose.obj", material_objects[4], identitymatrix, ShaderProgram0, rover_arm2);					// hose connected to arm2
+
 	// Environment: (sky-sphere, unlit shading)
+
 	CreateNode("models\\aquarium\\environment_sphere.obj", material_objects[7], identitymatrix, ShaderProgram1, root_node);
-	// Spotlight source indicator:
-	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	const auto environment_surface_node = CreateNode("models\\aquarium\\terrain_resculpt.obj", material_objects[8], identitymatrix, ShaderProgram0, root_node);	// terrain surface
 	environment_surface_node->SetTransform(cm.create_transformation_matrix(Vector3f(0.f, -20.f, 0.f), 0.f, 0.f, 1.f));
 	CreateNode("models\\aquarium\\terrain_resculpt-sides.obj", material_objects[9], identitymatrix, ShaderProgram0, environment_surface_node);
+	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node); // aquarium walls (TODO: should be opacitymapped)
 
 	// Skull
 
 	skalleNode = CreateNode("models\\aquarium\\skalle_03_preplaced.obj", material_objects[6], identitymatrix, ShaderProgram0, root_node);
 	skalleNode->SetOriginalPosition(Vector3f(-7.342f, 3.832f, -68.297f));
-	//CreateNode("models\\aquarium\\akvariemesh.obj", material_objects[10], identitymatrix, ShaderProgram1, environment_surface_node);
+
+
+	// Spotlight source indicator (unlit white box):
+	const auto boxnode = CreateNode("models\\placeholders\\1mBox.obj", material_objects[11], Matrix4f().createTranslation(Vector3f(0.0, 15.0, 10.0)), ShaderProgram1, root_node);
 
 	// Critters
 	crabNode = CreateNode("models\\critters\\crab.obj", material_objects[13], identitymatrix, ShaderProgram0, root_node);
@@ -516,8 +517,6 @@ bool initTextures()
 		"models\\critters\\rib_diffuse.png",
 		"models\\critters\\rib_normals.png", defaultSpec);
 
-
-
 	for (auto& el : material_objects)
 	{
 		if (!el.successfullyImported)
@@ -529,7 +528,7 @@ bool initTextures()
 bool initShaders()
 {
 	return
-		initShader(ShaderProgram0, "shaders\\vshader_ass4.glsl", "shaders\\fshader_ass4.glsl") &&								// diff/norm/spec mapped
+		initShader(ShaderProgram0, "shaders\\vshader_ass4.glsl", "shaders\\fshader_ass4.glsl") &&					// diff/norm/spec mapped
 		initShader(ShaderProgram1, "shaders\\shader.unlitdiffuse.v.glsl", "shaders\\shader.unlitdiffuse.f.glsl");	// unlit diffusemapped
 }
 
@@ -654,7 +653,7 @@ string readTextFile(const string& pathAndFileName) {
 	return text;
 } /* readTextFile() */
 
-void keyboard(unsigned char key, int x, int y) {
+void keyboard(unsigned char key, int x, int y) { // TODO: Keyboard Camera controls are still currently linked to framerate
 	Vector3f right;
 
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
